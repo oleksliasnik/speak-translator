@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("electron", {
   resizeWindow: (bounds: any) => ipcRenderer.invoke("resize-window", bounds),
   getWindowBounds: () => ipcRenderer.invoke("get-window-bounds"),
   getDesktopSources: () => ipcRenderer.invoke("get-desktop-sources"),
+  setContentProtection: (protect: boolean) => ipcRenderer.invoke("set-content-protection", protect),
   onClickThroughState: (callback: (state: boolean) => void) => {
     ipcRenderer.on("click-through-state", (_event, state) => callback(state));
   },

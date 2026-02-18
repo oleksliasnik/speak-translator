@@ -21,6 +21,7 @@ declare global {
         x: number;
         y: number;
       } | null>;
+      setContentProtection: (protect: boolean) => Promise<void>;
       onClickThroughState: (callback: (state: boolean) => void) => () => void;
     };
   }

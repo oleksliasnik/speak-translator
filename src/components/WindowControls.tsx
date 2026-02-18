@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MousePointerClick, Minus, X, Move, ChevronLeft } from "lucide-react";
+import { MousePointerClick, Minus, X, Move, ChevronLeft, Eye } from "lucide-react";
 
 interface WindowControlsProps {
   onOpacityChange: (opacity: number) => void;
@@ -10,11 +10,16 @@ interface WindowControlsProps {
 export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
   const [opacity, setOpacity] = useState(0.9); // CSS Opacity
   const [clickThrough, setClickThrough] = useState(false);
+  const [contentProtection, setContentProtection] = useState(false); // Default to false (visible for screenshots)
   const [mounted, setMounted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== "undefined" && window.electron) {
       const cleanup = window.electron.onClickThroughState((state) => {
         setClickThrough(state);
@@ -33,6 +38,12 @@ export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
     const newState = !clickThrough;
     setClickThrough(newState);
     window.electron?.setIgnoreMouseEvents(newState);
+  };
+
+  const toggleContentProtection = () => {
+    const newState = !contentProtection;
+    setContentProtection(newState);
+    window.electron?.setContentProtection(newState);
   };
 
   // Only render if mounted and inside Electron
@@ -78,6 +89,25 @@ export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
           isExpanded ? "max-w-[300px] opacity-100" : "max-w-0 opacity-0"
         }`}
       >
+        {/* Content Protection Toggle (Screenshot Visibility) */}
+        <button
+          onClick={toggleContentProtection}
+          onMouseDown={(e) => e.stopPropagation()}
+          className={`p-1.5 rounded-md transition-all shrink-0 ${
+            contentProtection
+              ? "bg-green-500/10 hover:bg-green-500/20 text-green-400"
+              : "hover:bg-white/10 text-gray-300 hover:text-white"
+          }`}
+          title={
+            contentProtection
+              ? "Invisible for screenshots ON"
+              : "Visible for screenshots (default)"
+          }
+          style={noDragStyle}
+        >
+          <Eye className="w-4 h-4" />
+        </button>
+
         {/* Opacity Slider */}
         <div
           className="flex items-center gap-2 group mx-1 p-1"

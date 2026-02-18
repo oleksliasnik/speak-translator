@@ -62,7 +62,8 @@ function createWindow() {
   }
 
   // CRITICAL: Content Protection for "Invisible Mode" against screenshots/recording
-  mainWindow.setContentProtection(true);
+  // Default to false to make app visible for screenshots
+  mainWindow.setContentProtection(false);
 
   // Load the app
   if (isDev) {
@@ -271,5 +272,11 @@ ipcMain.handle("move-window", (event, dx: number, dy: number) => {
       width: bounds.width,
       height: bounds.height,
     });
+  }
+});
+
+ipcMain.handle("set-content-protection", (event, protect: boolean) => {
+  if (mainWindow) {
+    mainWindow.setContentProtection(protect);
   }
 });
