@@ -18,6 +18,7 @@
   "build": {
     "appId": "com.speak-translator.app",
     "productName": "Speak-Translator",
+    "icon": "assets/icon.png",
     "files": [
       "out/**/*",
       "electron/**/*"

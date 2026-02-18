@@ -26,6 +26,7 @@ function createWindow() {
         // Center it initially
         x: (winX = Math.round((width - windowWidth) / 2)),
         y: (winY = Math.round((height - windowHeight) / 2)),
+        icon: path_1.default.join(__dirname, "../assets/icon.png"),
         webPreferences: {
             preload: path_1.default.join(__dirname, "preload.js"),
             nodeIntegration: false,
@@ -38,7 +39,7 @@ function createWindow() {
         hasShadow: false,
         resizable: false, // Disable by default
         backgroundColor: "#00000000",
-        skipTaskbar: true,
+        skipTaskbar: false,
     });
     winW = windowWidth;
     winH = windowHeight;
@@ -246,5 +247,7 @@ electron_1.ipcMain.handle("move-window", (event, dx, dy) => {
 electron_1.ipcMain.handle("set-content-protection", (event, protect) => {
     if (mainWindow) {
         mainWindow.setContentProtection(protect);
+        // Hide the taskbar icon when the app is invisible for screenshots
+        mainWindow.setSkipTaskbar(protect);
     }
 });

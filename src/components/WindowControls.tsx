@@ -100,8 +100,8 @@ export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
           }`}
           title={
             contentProtection
-              ? "Invisible for screenshots ON"
-              : "Visible for screenshots (default)"
+              ? "Invisible for screenshots ON (icon hidden from taskbar)"
+              : "Visible for screenshots (icon visible in taskbar)"
           }
           style={noDragStyle}
         >
