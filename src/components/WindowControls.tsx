@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MousePointerClick, Minus, X, Move, ChevronLeft, Eye } from "lucide-react";
+import { MousePointerClick, Minus, X, Move, ChevronLeft, Eye, EyeOff } from "lucide-react";
 
 interface WindowControlsProps {
   onOpacityChange: (opacity: number) => void;
@@ -105,7 +105,7 @@ export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
           }
           style={noDragStyle}
         >
-          <Eye className="w-4 h-4" />
+          {contentProtection ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
 
         {/* Opacity Slider */}
@@ -133,7 +133,7 @@ export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
           className={`p-1.5 rounded-md transition-all shrink-0 ${
             clickThrough
               ? "hover:bg-white/10 text-gray-300 hover:text-white"
-              : "bg-red-500/10 hover:bg-red-500/20 text-white"
+              : "bg-red-500/30 hover:bg-red-500/40 text-white"
           }`}
           title={
             clickThrough
@@ -165,7 +165,7 @@ export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
       <button
         onClick={() => window.electron?.close()}
         onMouseDown={(e) => e.stopPropagation()}
-        className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-md text-gray-300 transition-colors"
+        className="p-1.5 hover:bg-red-500/40 hover:text-red-400 rounded-md text-gray-300 transition-colors"
         style={noDragStyle}
       >
         <X className="w-4 h-4" />
