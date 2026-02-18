@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld("electron", {
   setOpacity: (opacity: number) => ipcRenderer.invoke("set-opacity", opacity),
   minimize: () => ipcRenderer.invoke("minimize-window"),
   close: () => ipcRenderer.invoke("close-window"),
+  setCaptureProtection: (enabled: boolean) =>
+    ipcRenderer.invoke("set-capture-protection", enabled),
+  getCaptureProtection: () => ipcRenderer.invoke("get-capture-protection"),
   moveWindow: (dx: number, dy: number) =>
     ipcRenderer.invoke("move-window", dx, dy),
   resizeWindow: (bounds: any) => ipcRenderer.invoke("resize-window", bounds),

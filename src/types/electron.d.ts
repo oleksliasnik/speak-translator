@@ -7,6 +7,8 @@ declare global {
       setOpacity: (opacity: number) => Promise<void>;
       minimize: () => Promise<void>;
       close: () => Promise<void>;
+      setCaptureProtection: (enabled: boolean) => Promise<void>;
+      getCaptureProtection: () => Promise<boolean>;
       getDesktopSources: () => Promise<any[]>;
       moveWindow: (dx: number, dy: number) => Promise<void>;
       resizeWindow: (bounds: {

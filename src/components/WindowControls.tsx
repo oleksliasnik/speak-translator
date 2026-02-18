@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MousePointerClick, Minus, X, Move, ChevronLeft } from "lucide-react";
+import {
+  MousePointerClick,
+  Minus,
+  X,
+  Move,
+  ChevronLeft,
+  EyeOff,
+  Eye,
+} from "lucide-react";
 
 interface WindowControlsProps {
   onOpacityChange: (opacity: number) => void;
@@ -10,15 +18,25 @@ interface WindowControlsProps {
 export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
   const [opacity, setOpacity] = useState(0.9); // CSS Opacity
   const [clickThrough, setClickThrough] = useState(false);
+  const [captureProtectionEnabled, setCaptureProtectionEnabled] =
+    useState(false);
   const [mounted, setMounted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    Promise.resolve().then(() => setMounted(true));
     if (typeof window !== "undefined" && window.electron) {
       const cleanup = window.electron.onClickThroughState((state) => {
         setClickThrough(state);
       });
+
+      window.electron
+        .getCaptureProtection?.()
+        .then((enabled) => setCaptureProtectionEnabled(!!enabled))
+        .catch(() => {
+          // ignore
+        });
+
       return cleanup;
     }
   }, []);
@@ -33,6 +51,12 @@ export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
     const newState = !clickThrough;
     setClickThrough(newState);
     window.electron?.setIgnoreMouseEvents(newState);
+  };
+
+  const toggleCaptureProtection = () => {
+    const newState = !captureProtectionEnabled;
+    setCaptureProtectionEnabled(newState);
+    window.electron?.setCaptureProtection?.(newState);
   };
 
   // Only render if mounted and inside Electron
@@ -83,6 +107,27 @@ export const WindowControls = ({ onOpacityChange }: WindowControlsProps) => {
           className="flex items-center gap-2 group mx-1 p-1"
           style={noDragStyle}
         >
+          <button
+            onClick={toggleCaptureProtection}
+            onMouseDown={(e) => e.stopPropagation()}
+            className={`p-1.5 rounded-md transition-all shrink-0 ${
+              captureProtectionEnabled
+                ? "bg-red-500/10 hover:bg-red-500/20 text-white"
+                : "hover:bg-white/10 text-gray-300 hover:text-white"
+            }`}
+            title={
+              captureProtectionEnabled
+                ? "Invisible for screenshots / screen sharing"
+                : "Visible for screenshots / screen sharing"
+            }
+            style={noDragStyle}
+          >
+            {captureProtectionEnabled ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
           <input
             type="range"
             min="0"
