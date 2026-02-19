@@ -66,7 +66,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
       {/* Top Center: Controls */}
       <div
-        className="absolute top-4 right-2 sm:left-30 z-30 flex items-center gap-2"
+        className="absolute top-4 right-2 xs:right-auto xs:left-30 z-30 flex items-center gap-2"
         style={{ WebkitAppRegion: "no-drag" } as any}
       >
         <div className="ml-2">
