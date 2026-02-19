@@ -16,11 +16,39 @@ const loadURL = serve({ directory: "out" });
 
 let mainWindow;
 let mouseEventsIgnored = false;
+let captureProtectionEnabled = false;
 let winX = 0;
 let winY = 0;
 let winW = 0;
 let winH = 0;
 let isMovingProgrammatically = false;
+
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  });
+}
+
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.speak-translator.app");
+}
+
+function getAppIconPath() {
+  return path.join(app.getAppPath(), "assets", "icon.png");
+}
+
+function setCaptureProtection(enabled) {
+  if (!mainWindow) return;
+  captureProtectionEnabled = !!enabled;
+  mainWindow.setContentProtection(!!enabled);
+  mainWindow.setSkipTaskbar(!!enabled);
+}
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -37,6 +65,7 @@ function createWindow() {
     y: (winY = Math.round((height - windowHeight) / 2)),
     width: (winW = windowWidth),
     height: (winH = windowHeight),
+    icon: getAppIconPath(),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -49,7 +78,7 @@ function createWindow() {
     hasShadow: false,
     backgroundColor: "#00000000", // Fully transparent
     resizable: false, // Prevents Windows Snap Layouts during movement
-    skipTaskbar: true, // Sometimes helps with boundary constraints on Windows
+    skipTaskbar: false,
   });
 
   // Enable visibility across all workspaces and screens
@@ -61,8 +90,7 @@ function createWindow() {
     mainWindow.setAlwaysOnTop(true, "screen-saver", 1);
   }
 
-  // CRITICAL: Content Protection for "Invisible Mode" against screenshots/recording
-  mainWindow.setContentProtection(true);
+  setCaptureProtection(false);
 
   // Load the app
   if (isDev) {
@@ -203,7 +231,7 @@ function toggleClickThrough() {
 }
 
 app.whenReady().then(() => {
-  createWindow();
+  if (gotTheLock) createWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -244,6 +272,14 @@ ipcMain.handle("minimize-window", () => {
 
 ipcMain.handle("close-window", () => {
   if (mainWindow) mainWindow.close();
+});
+
+ipcMain.handle("set-capture-protection", (_event, enabled) => {
+  setCaptureProtection(enabled);
+});
+
+ipcMain.handle("get-capture-protection", () => {
+  return captureProtectionEnabled;
 });
 
 ipcMain.handle("get-desktop-sources", async () => {
