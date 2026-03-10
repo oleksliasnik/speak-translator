@@ -45,6 +45,7 @@ const TopBar: React.FC<TopBarProps> = ({
       {/* Top Left: Menu & New Chat */}
       <div
         className="absolute top-4 left-4 z-30 flex items-center gap-4"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         style={{ WebkitAppRegion: "no-drag" } as any}
       >
         <button
@@ -67,6 +68,7 @@ const TopBar: React.FC<TopBarProps> = ({
       {/* Top Center: Controls */}
       <div
         className="absolute top-4 right-2 xs:right-auto xs:left-30 z-30 flex items-center gap-2"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         style={{ WebkitAppRegion: "no-drag" } as any}
       >
         <div className="ml-2">
@@ -106,6 +108,7 @@ const TopBar: React.FC<TopBarProps> = ({
       {/* Top Right: Window Controls */}
       <div
         className="absolute top-4 right-4 z-30"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         style={{ WebkitAppRegion: "no-drag" } as any}
       >
         <WindowControls onOpacityChange={onOpacityChange} />
