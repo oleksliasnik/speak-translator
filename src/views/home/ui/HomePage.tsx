@@ -104,6 +104,7 @@ export default function HomePage() {
           // backgroundColor: `rgba(15, 23, 42, ${backgroundOpacity})`,
           backgroundColor: `rgba(8, 13, 26, ${backgroundOpacity})`,
           WebkitAppRegion: "drag",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any
       }
     >
@@ -134,6 +135,7 @@ export default function HomePage() {
         {/* Main Content Area - Fills available space */}
         <div
           className="flex-1 w-full min-h-0 relative mb-6"
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           style={{ WebkitAppRegion: "no-drag" } as any}
         >
           {viewMode === "visualizer" ? (
