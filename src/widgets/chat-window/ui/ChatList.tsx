@@ -5,6 +5,7 @@ import MessageItem from "@/entities/chat/ui/MessageItem";
 import { translations } from "@/shared/lib/translations";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Loader2 } from "lucide-react";
 
 const ChatList: React.FC = () => {
   const { transcripts, streamingContent, interfaceLanguage, fontSize } =
@@ -49,7 +50,7 @@ const ChatList: React.FC = () => {
               msg={msg}
               className={
                 index === transcripts.length - 1 && !streamingContent
-                  ? "pb-10"
+                  ? "pb-16"
                   : ""
               }
             />
@@ -73,8 +74,7 @@ const ChatList: React.FC = () => {
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {streamingContent.text}
                 </ReactMarkdown>
-                {/* <span className="opacity-70">{streamingContent.text}</span> */}
-                <span className="inline-block w-1.5 h-3 ml-1 bg-current opacity-50 animate-blink align-middle"></span>
+                <Loader2 className="w-3 h-3 ml-1 animate-spin inline-block align-middle opacity-50" />
               </div>
             </div>
           )}

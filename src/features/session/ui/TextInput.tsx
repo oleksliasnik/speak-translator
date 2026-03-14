@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { useLiveStore } from "@/app/store/useLiveStore";
 import { translations } from "@/shared/lib/translations";
+import { ConnectionStatus } from "@/shared/types";
 
 interface TextInputProps {
   onSend: (text: string) => void;
@@ -17,7 +18,7 @@ const TextInput: React.FC<TextInputProps> = ({
 }) => {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { interfaceLanguage } = useLiveStore();
+  const { interfaceLanguage, status } = useLiveStore();
   const t = translations[interfaceLanguage] || translations["uk"];
 
   useEffect(() => {
@@ -64,7 +65,7 @@ const TextInput: React.FC<TextInputProps> = ({
 
   return (
     <div
-      className="absolute -bottom-2 left-4 right-4 z-40 max-w-[400px] mx-auto animate-in slide-in-from-bottom-5 fade-in duration-200"
+      className="absolute bottom-0 left-4 right-4 z-40 sm:max-w-[700px] max-w-[400px] mx-auto animate-in slide-in-from-bottom-5 fade-in duration-200"
       style={{ WebkitAppRegion: "no-drag" } as any}
     >
       <div className="relative bg-slate-800/60 backdrop-blur-md border border-slate-700/50 shadow-2xl rounded-2xl p-2">
@@ -80,7 +81,7 @@ const TextInput: React.FC<TextInputProps> = ({
           />
           <button
             type="submit"
-            disabled={!text.trim()}
+            disabled={!text.trim() || status !== ConnectionStatus.CONNECTED}
             className="p-2 mb-1 rounded-xl bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors shrink-0"
           >
             <Send className="w-4 h-4" />
