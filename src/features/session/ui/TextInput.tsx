@@ -76,7 +76,7 @@ const TextInput: React.FC<TextInputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 bg-transparent text-slate-100 placeholder-slate-500 text-sm px-3 py-3 outline-none resize-none max-h-[144px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent cursor-default"
+            className="flex-1 bg-transparent text-slate-100 placeholder-slate-500 text-xl px-3 py-1 outline-none resize-none max-h-[144px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent cursor-default"
           />
           <button
             type="submit"
