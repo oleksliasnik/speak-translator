@@ -40,6 +40,7 @@ const ControlTray: React.FC<ControlTrayProps> = ({
 
   const isConnected = status === ConnectionStatus.CONNECTED;
   const isConnecting = status === ConnectionStatus.CONNECTING;
+  const isError = status === ConnectionStatus.ERROR;
 
   const getStatusText = () => {
     switch (status) {
@@ -76,7 +77,7 @@ const ControlTray: React.FC<ControlTrayProps> = ({
           className={`flex items-center gap-2 text-xs font-medium ${getStatusColor()} transition-colors duration-300`}
         >
           <div
-            className={`w-2 h-2 rounded-full ${status === ConnectionStatus.CONNECTED ? "bg-emerald-400 animate-pulse" : status === ConnectionStatus.ERROR ? "bg-red-500" : "bg-slate-500"}`}
+            className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse" : isError ? "bg-red-500" : "bg-slate-500"}`}
           />
           {getStatusText()}
         </div>
@@ -90,42 +91,45 @@ const ControlTray: React.FC<ControlTrayProps> = ({
         </div>
       )}
 
-      {/* View Mode Toggle */}
-      <button
-        onClick={() => setViewMode(viewMode === "text" ? "visualizer" : "text")}
-        className={`
-              absolute sm:left-7 left-12 sm:bottom-3 bottom-16 items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-medium border transition-all duration-200 cursor-default
+      {/* Main Controls Row */}
+      <div className="relative flex items-center justify-center gap-4 sm:gap-6 w-full px-4">
+        {/* View Mode Toggle */}
+        <button
+          onClick={() =>
+            setViewMode(viewMode === "text" ? "visualizer" : "text")
+          }
+          className={`
+              items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-medium border transition-all duration-200 cursor-default
               ${
                 viewMode === "text"
                   ? "bg-blue-900/40 hover:bg-blue-800/50 text-blue-300 border-blue-500/50 shadow-sm"
                   : "bg-slate-800 text-slate-400 hover:text-slate-300 border-slate-700 hover:bg-slate-700"
               }
           `}
-        style={{ WebkitAppRegion: "no-drag" } as any}
-      >
-        <MessageSquare
-          className={`w-3 h-3 ${viewMode === "text" ? "text-blue-400" : "text-slate-400"}`}
-        />
-      </button>
-
-      {/* Main Controls Row */}
-      <div className="relative flex items-center justify-center gap-4 sm:gap-6 w-full px-4">
-        {/* Keyboard/Text Input Toggle */}
-        <button
-          onClick={onToggleInput}
-          className={`
-              w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-200 cursor-default
-              ${
-                isInputVisible
-                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/50"
-                  : "bg-slate-800/50 text-slate-500 hover:text-slate-300 border border-slate-700/50 hover:bg-slate-700"
-              }
-          `}
           style={{ WebkitAppRegion: "no-drag" } as any}
-          title="Toggle Keyboard"
         >
-          <Keyboard className="w-5 h-5" />
+          <MessageSquare
+            className={`w-3 h-3 ${viewMode === "text" ? "text-blue-400" : "text-slate-400"}`}
+          />
         </button>
+        {/* Keyboard/Text Input Toggle */}
+        <div className="sm:static absolute left-12 bottom-14 ">
+          <button
+            onClick={onToggleInput}
+            className={`
+                w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-200 cursor-default
+                ${
+                  isInputVisible
+                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/50"
+                    : "bg-slate-800/50 text-slate-500 hover:text-slate-300 border border-slate-700/50 hover:bg-slate-700"
+                }
+            `}
+            style={{ WebkitAppRegion: "no-drag" } as any}
+            title="Toggle Keyboard"
+          >
+            <Keyboard className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Start/Stop Button (Center) */}
         <button
@@ -159,9 +163,10 @@ const ControlTray: React.FC<ControlTrayProps> = ({
         </button>
 
         {/* Mic Toggle */}
-        <button
-          onClick={() => setIsMicOn(!isMicOn)}
-          className={`
+        <div className="sm:static absolute right-11 bottom-14 ">
+          <button
+            onClick={() => setIsMicOn(!isMicOn)}
+            className={`
               relative z-10 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 cursor-default
               ${
                 isMicOn
@@ -169,25 +174,27 @@ const ControlTray: React.FC<ControlTrayProps> = ({
                   : "bg-slate-800/50 text-slate-500 hover:text-slate-300 border border-slate-700/50 hover:bg-slate-700"
               }
           `}
-          style={{ WebkitAppRegion: "no-drag" } as any}
-          title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
-        >
-          {isMicOn ? (
-            <Mic className="w-5 h-5" />
-          ) : (
-            <MicOff className="w-5 h-5" />
-          )}
-          {isMicOn && (
-            <div className="absolute right-0 bottom-0 ">
-              <Visualizer
-                inputLevel={inputLevel}
-                outputLevel={outputLevel}
-                isActive={isConnected}
-              />
-            </div>
-          )}
-        </button>
-        <div className="absolute sm:right-8 right-12 sm:bottom-3 bottom-16 ">
+            style={{ WebkitAppRegion: "no-drag" } as any}
+            title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
+          >
+            {isMicOn ? (
+              <Mic className="z-50 w-5 h-5" />
+            ) : (
+              <MicOff className="w-5 h-5" />
+            )}
+            {isMicOn && (
+              <div className="absolute right-0 bottom-0 ">
+                <Visualizer
+                  inputLevel={inputLevel}
+                  outputLevel={outputLevel}
+                  isActive={isConnected}
+                />
+              </div>
+            )}
+          </button>
+        </div>
+        {/* <div className="absolute sm:right-8 right-12 sm:bottom-3 bottom-16 "> */}
+        <div className="">
           <RecordingToggle />
         </div>
       </div>

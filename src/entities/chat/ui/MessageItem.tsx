@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Pause, Loader2 } from "lucide-react";
+import { Play, Pause, Loader2, Copy, Check } from "lucide-react";
 import { Message } from "@/shared/types";
 import { getAudio } from "@/shared/lib/db";
 import { useLiveStore } from "@/app/store/useLiveStore";
@@ -20,6 +20,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [copied, setCopied] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Watch for other audios playing to pause this one
@@ -133,6 +134,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
     }
   };
 
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(msg.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
+
   const isUser = msg.role === "user";
 
   // Calculate progress percentage
@@ -152,6 +164,22 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
             }
         `}
       >
+        <button
+          onClick={handleCopy}
+          className={`
+              absolute top-0 right-0 p-1.5 rounded-lg transition-all z-10
+              ${isUser ? "hover:bg-blue-500/30 text-blue-200" : "hover:bg-slate-700 text-slate-400"}
+              md:opacity-0 md:group-hover:opacity-100 
+              opacity-40 hover:opacity-100
+          `}
+          title="Copy message"
+        >
+          {copied ? (
+            <Check className="w-3.5 h-3.5 text-green-400" />
+          ) : (
+            <Copy className="w-3.5 h-3.5" />
+          )}
+        </button>
         <div
           className="wrap-break-word whitespace-pre-wrap prose prose-invert prose-sm max-w-none"
           style={{ fontSize: `${fontSize}rem` }}
