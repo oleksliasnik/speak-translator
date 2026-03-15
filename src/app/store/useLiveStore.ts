@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ConnectionStatus, Message, ChatSession } from "@/shared/types";
 import { getSessions, saveSession, deleteSessionById } from "@/shared/lib/db";
+ 
+export type PlaybackSpeed = "slow" | "very_slow" | "normal" | "fast" | "very_fast";
 
 interface LiveStore {
   status: ConnectionStatus;
@@ -10,7 +12,7 @@ interface LiveStore {
   outputVolume: number; // For visualization
 
   // Settings
-  playbackRate: number;
+  playbackRate: PlaybackSpeed;
   inputGain: number; // 0.0 to 2.0 (Volume control)
   outputGain: number; // 0.0 to 2.0 (Volume control)
   targetLanguage: string; // Used for Chat mode
@@ -43,7 +45,7 @@ interface LiveStore {
   setError: (error: string | null) => void;
   setVolumes: (input: number, output: number) => void;
 
-  setPlaybackRate: (rate: number) => void;
+  setPlaybackRate: (rate: PlaybackSpeed) => void;
   setInputGain: (gain: number) => void;
   setOutputGain: (gain: number) => void;
   setTargetLanguage: (lang: string) => void;
@@ -82,7 +84,7 @@ export const useLiveStore = create<LiveStore>()(
       inputVolume: 0,
       outputVolume: 0,
 
-      playbackRate: 1.0,
+      playbackRate: "normal",
       inputGain: 1.0,
       outputGain: 1.0,
       targetLanguage: "Universal",

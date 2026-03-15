@@ -4,7 +4,6 @@ export const profilePrompts = {
       if (targetLanguage === "Universal") {
         return "You are a helpful, friendly assistant. Always detect the language used by the user and respond in the same language. Keep your answers concise and conversational.";
       }
-      console.log(targetLanguage);
       return `You are a helpful, friendly assistant. Please converse with the user in ${targetLanguage}. Keep your answers concise and conversational.`;
     },
     formatRequirements: `**RESPONSE FORMAT REQUIREMENTS:**
@@ -768,6 +767,7 @@ export function buildSystemPrompt(
   googleSearchEnabled = true,
   langParams = {},
   mode = "conversation",
+  playbackSpeed = "normal",
 ) {
   let intro = promptParts.intro;
   if (typeof intro === "function") {
@@ -780,6 +780,25 @@ export function buildSystemPrompt(
   }
 
   const sections = [intro];
+
+  if (playbackSpeed && playbackSpeed !== "normal") {
+    const speedInstructions = {
+      slow: "speak slowly and calmly. Take slight pauses between sentences.",
+      very_slow:
+        "speak EXTREMELY SLOWLY and articulate every single syllable. There must be distinct, pronounced pauses between every single word. Speak word-by-word like you are teaching pronunciation to a beginner. This is a strict constraint.",
+      fast: "speak very quickly and energetically. Minimize all pauses.",
+      very_fast:
+        "speak AS QUICKLY AS POSSIBLE at maximum speed. Rapid fire. No pauses. This is a strict constraint.",
+    };
+
+    const instruction = speedInstructions[playbackSpeed];
+    if (instruction) {
+      sections.push(
+        "\n\n**CRITICAL VOICE REQUIREMENT:**\n- You MUST ",
+        instruction,
+      );
+    }
+  }
 
   sections.push("\n\n", promptParts.formatRequirements);
 
@@ -800,7 +819,8 @@ export function buildSystemPrompt(
 
   sections.push("\n\n", promptParts.outputInstructions);
 
-  return sections.join("");
+  const finalPrompt = sections.join("");
+  return finalPrompt;
 }
 
 export function getSystemPrompt(
@@ -809,6 +829,7 @@ export function getSystemPrompt(
   googleSearchEnabled = true,
   mode = "conversation",
   langParams = {},
+  playbackSpeed = "normal",
 ) {
   let selectedProfile = profile;
 
@@ -827,5 +848,6 @@ export function getSystemPrompt(
     googleSearchEnabled,
     langParams,
     mode,
+    playbackSpeed,
   );
 }

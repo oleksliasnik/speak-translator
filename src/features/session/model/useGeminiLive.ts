@@ -316,6 +316,7 @@ export const useGeminiLive = () => {
         promptProfile,
         translationSource,
         translationTarget,
+        playbackRate: currentPlaybackRate,
       } = storeState;
 
       let systemInstruction = getSystemPrompt(
@@ -328,6 +329,7 @@ export const useGeminiLive = () => {
           langA: translationSource,
           langB: translationTarget,
         },
+        currentPlaybackRate,
       );
 
       // If we are NOT resuming, restore Context from previous messages manually
@@ -568,7 +570,8 @@ export const useGeminiLive = () => {
 
                   const source = ctx.createBufferSource();
                   source.buffer = audioBuffer;
-                  source.playbackRate.value = currentRate;
+                  // source.playbackRate.value = currentRate; // Disabled: we now use system prompt for speed
+                  source.playbackRate.value = 1.0;
 
                   source.connect(gainNode);
 
@@ -581,8 +584,8 @@ export const useGeminiLive = () => {
                   };
 
                   source.start(nextStartTimeRef.current);
-                  nextStartTimeRef.current +=
-                    audioBuffer.duration / currentRate;
+                  // nextStartTimeRef.current += audioBuffer.duration / currentRate;
+                  nextStartTimeRef.current += audioBuffer.duration;
                 }
               }
 
@@ -1001,6 +1004,20 @@ export const useGeminiLive = () => {
     },
     [sendTextMessage, stopAudio, flushBuffers],
   );
+
+  // Auto-reconnect on speed change to apply new prompt
+  useEffect(() => {
+    const { status } = useLiveStore.getState();
+    if (status === ConnectionStatus.CONNECTED) {
+      console.log(
+        "Playback speed changed. Re-connecting to apply new system prompt...",
+      );
+
+      cleanupResources(true).then(() => {
+        connect();
+      });
+    }
+  }, [playbackRate, connect, cleanupResources]);
 
   // Cleanup on unmount
   useEffect(() => {
