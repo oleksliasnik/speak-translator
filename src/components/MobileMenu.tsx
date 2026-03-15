@@ -2,7 +2,7 @@
 import React from "react";
 import { MoreVertical, Mic, Laptop, Layers } from "lucide-react";
 import { AudioMode } from "@/hooks/useSystemAudio";
-import { useLiveStore } from "@/app/store/useLiveStore";
+import { useLiveStore, PlaybackSpeed } from "@/app/store/useLiveStore";
 import { translations } from "@/shared/lib/translations";
 
 interface MobileMenuProps {
@@ -44,7 +44,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
     },
   ];
 
-  const speedOptions = [0.75, 1.0, 1.25, 1.5, 2.0];
+  const speedOptions: PlaybackSpeed[] = ["very_slow", "slow", "normal", "fast", "very_fast"];
 
   return (
     <div className="relative sm:hidden">
@@ -109,7 +109,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                       playbackRate === rate ? "text-blue-400 bg-slate-700/50" : "text-slate-300"
                     }`}
                   >
-                    <span>{rate}x</span>
+                    <span>
+                      {rate === "normal" && t.speedNormal}
+                      {rate === "slow" && t.speedSlow}
+                      {rate === "very_slow" && t.speedVerySlow}
+                      {rate === "fast" && t.speedFast}
+                      {rate === "very_fast" && t.speedVeryFast}
+                    </span>
                     {playbackRate === rate && (
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                     )}
