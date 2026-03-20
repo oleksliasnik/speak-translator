@@ -9,6 +9,7 @@ import {
   PCM_SAMPLE_RATE_OUTPUT,
   mergeBuffers,
   pcmToWav,
+  trimSilence,
 } from "@/shared/lib/audioUtils";
 import { saveAudio } from "@/shared/lib/db";
 import { ConnectionStatus } from "@/shared/types";
@@ -147,13 +148,18 @@ export const useGeminiLive = () => {
     // Save unsaved user input
     if (transcriptionBufferRef.current.input.trim()) {
       const msgId = crypto.randomUUID();
-      const hasAudio =
+      let hasAudio =
         isRecordingEnabled && audioAccumulatorRef.current.input.length > 0;
 
       if (hasAudio) {
         const combined = mergeBuffers(audioAccumulatorRef.current.input);
-        const wavBlob = pcmToWav(combined, PCM_SAMPLE_RATE_INPUT);
-        saveAudio(msgId, wavBlob);
+        const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
+        if (trimmed.length > 0) {
+          const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
+          saveAudio(msgId, wavBlob);
+        } else {
+          hasAudio = false;
+        }
       }
 
       addTranscript({
@@ -630,7 +636,7 @@ export const useGeminiLive = () => {
                   ) {
                     const { isRecordingEnabled } = useLiveStore.getState();
                     const msgId = crypto.randomUUID();
-                    const hasAudio =
+                    let hasAudio =
                       isRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
@@ -638,8 +644,13 @@ export const useGeminiLive = () => {
                       const combined = mergeBuffers(
                         audioAccumulatorRef.current.input,
                       );
-                      const wavBlob = pcmToWav(combined, PCM_SAMPLE_RATE_INPUT);
-                      saveAudio(msgId, wavBlob);
+                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
+                      if (trimmed.length > 0) {
+                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
+                        saveAudio(msgId, wavBlob);
+                      } else {
+                        hasAudio = false;
+                      }
                     }
 
                     addTranscript({
@@ -669,7 +680,7 @@ export const useGeminiLive = () => {
                   // --- SAVE REMAINDER USER TURN (if any) ---
                   if (transcriptionBufferRef.current.input.trim()) {
                     const msgId = crypto.randomUUID();
-                    const hasAudio =
+                    let hasAudio =
                       isRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
@@ -678,8 +689,13 @@ export const useGeminiLive = () => {
                       const combined = mergeBuffers(
                         audioAccumulatorRef.current.input,
                       );
-                      const wavBlob = pcmToWav(combined, PCM_SAMPLE_RATE_INPUT);
-                      saveAudio(msgId, wavBlob);
+                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
+                      if (trimmed.length > 0) {
+                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
+                        saveAudio(msgId, wavBlob);
+                      } else {
+                        hasAudio = false;
+                      }
                     }
 
                     addTranscript({
@@ -772,11 +788,29 @@ export const useGeminiLive = () => {
                   // If we also had pending user input during interruption (rare but possible)
                   if (transcriptionBufferRef.current.input.trim()) {
                     const msgId = crypto.randomUUID();
+                    let hasAudio =
+                      isRecordingEnabled &&
+                      audioAccumulatorRef.current.input.length > 0;
+
+                    if (hasAudio) {
+                      const combined = mergeBuffers(
+                        audioAccumulatorRef.current.input,
+                      );
+                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
+                      if (trimmed.length > 0) {
+                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
+                        saveAudio(msgId, wavBlob);
+                      } else {
+                        hasAudio = false;
+                      }
+                    }
+
                     addTranscript({
                       id: msgId,
                       role: "user",
                       text: transcriptionBufferRef.current.input.trim(),
                       timestamp: Date.now(),
+                      hasAudio: hasAudio,
                     });
                   }
 

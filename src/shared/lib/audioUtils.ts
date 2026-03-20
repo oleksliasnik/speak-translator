@@ -111,3 +111,61 @@ function writeString(view: DataView, offset: number, string: string) {
     view.setUint8(offset + i, string.charCodeAt(i));
   }
 }
+
+// Helper to remove leading and trailing silence from recorded PCM data
+export function trimSilence(
+  pcmData: Uint8Array,
+  sampleRate: number,
+  threshold: number = 0.05,
+  preRollMs: number = 200,
+  postRollMs: number = 200,
+): Uint8Array {
+  // Uint8Array has length representing bytes. 16-bit PCM has 2 bytes per sample.
+  const int16 = new Int16Array(
+    pcmData.buffer,
+    pcmData.byteOffset,
+    pcmData.byteLength / 2,
+  );
+
+  const windowMs = 20;
+  const windowSamples = Math.floor((sampleRate * windowMs) / 1000);
+
+  let firstActiveFrame = -1;
+  let lastActiveFrame = -1;
+
+  for (let i = 0; i < int16.length; i += windowSamples) {
+    const end = Math.min(i + windowSamples, int16.length);
+    let maxAbs = 0;
+    for (let j = i; j < end; j++) {
+      const abs = Math.abs(int16[j] / 32768.0);
+      if (abs > maxAbs) {
+        maxAbs = abs;
+      }
+    }
+
+    if (maxAbs > threshold) {
+      if (firstActiveFrame === -1) {
+        firstActiveFrame = i;
+      }
+      lastActiveFrame = end - 1;
+    }
+  }
+
+  // If entire recording is below the threshold, it's just silence
+  if (firstActiveFrame === -1) {
+    return new Uint8Array(0);
+  }
+
+  const preRollSamples = Math.floor((sampleRate * preRollMs) / 1000);
+  const postRollSamples = Math.floor((sampleRate * postRollMs) / 1000);
+
+  const startIdx = Math.max(0, firstActiveFrame - preRollSamples);
+  const endIdx = Math.min(int16.length - 1, lastActiveFrame + postRollSamples);
+
+  // slice creates a copy by default, but taking subarray of Int16 and returning as Uint8
+  const trimmedInt16 = int16.subarray(startIdx, endIdx + 1);
+  // Important: create a new Uint8Array referencing a COPY of the sub-buffer
+  const result = new Uint8Array(trimmedInt16.length * 2);
+  result.set(new Uint8Array(trimmedInt16.buffer, trimmedInt16.byteOffset, trimmedInt16.byteLength));
+  return result;
+}
