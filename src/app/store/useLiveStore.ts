@@ -23,6 +23,7 @@ interface LiveStore {
   voiceName: string;
   interfaceLanguage: string;
   isRecordingEnabled: boolean;
+  isUserRecordingEnabled: boolean; // Controls whether user audio is saved
   isMicOn: boolean; // New Mute State
   apiKey: string;
   customSystemInstruction: string;
@@ -56,6 +57,7 @@ interface LiveStore {
   setVoiceName: (name: string) => void;
   setInterfaceLanguage: (lang: string) => void;
   setIsRecordingEnabled: (enabled: boolean) => void;
+  setIsUserRecordingEnabled: (enabled: boolean) => void;
   setIsMicOn: (isOn: boolean) => void; // Action for Mic
   setApiKey: (key: string) => void;
   setCustomSystemInstruction: (instruction: string) => void;
@@ -95,6 +97,7 @@ export const useLiveStore = create<LiveStore>()(
       voiceName: "Kore",
       interfaceLanguage: "uk",
       isRecordingEnabled: false, // Default to false
+      isUserRecordingEnabled: false, // Default to false for user
       isMicOn: true,
       apiKey: "",
       customSystemInstruction: "",
@@ -127,6 +130,8 @@ export const useLiveStore = create<LiveStore>()(
       setInterfaceLanguage: (interfaceLanguage) => set({ interfaceLanguage }),
       setIsRecordingEnabled: (isRecordingEnabled) =>
         set({ isRecordingEnabled }),
+      setIsUserRecordingEnabled: (isUserRecordingEnabled) =>
+        set({ isUserRecordingEnabled }),
       setIsMicOn: (isMicOn) => set({ isMicOn }),
       setApiKey: (apiKey) => set({ apiKey }),
       setCustomSystemInstruction: (customSystemInstruction) =>
@@ -252,6 +257,7 @@ export const useLiveStore = create<LiveStore>()(
         voiceName: state.voiceName,
         interfaceLanguage: state.interfaceLanguage,
         // isRecordingEnabled removed from persistence
+        isUserRecordingEnabled: state.isUserRecordingEnabled,
         apiKey: state.apiKey,
         customSystemInstruction: state.customSystemInstruction,
         customInstructions: state.customInstructions,
