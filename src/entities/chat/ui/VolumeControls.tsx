@@ -12,6 +12,8 @@ const VolumeControls: React.FC = () => {
     setOutputGain,
     noiseSuppression,
     setNoiseSuppression,
+    isUserRecordingEnabled,
+    setIsUserRecordingEnabled,
     interfaceLanguage,
   } = useLiveStore();
 
@@ -24,13 +26,22 @@ const VolumeControls: React.FC = () => {
           <label className="text-xs text-slate-500 font-bold uppercase tracking-wider flex items-center gap-2">
             <Mic className="w-3 h-3" /> {t.mic}
           </label>
-          <button
-            onClick={() => setNoiseSuppression(!noiseSuppression)}
-            className={`p-1 rounded text-[10px] font-medium transition-colors border ${noiseSuppression ? "bg-purple-500/20 text-purple-300 border-purple-500/30" : "bg-slate-800 text-slate-500 border-slate-700"}`}
-            title={t.noiseSuppression}
-          >
-            {noiseSuppression ? "NR ON" : "NR OFF"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsUserRecordingEnabled(!isUserRecordingEnabled)}
+              className={`p-1 rounded text-[10px] font-medium transition-colors border ${isUserRecordingEnabled ? "bg-red-500/20 text-red-300 border-red-500/30" : "bg-slate-800 text-slate-500 border-slate-700"}`}
+              title={t.userRecordingToggle}
+            >
+              {isUserRecordingEnabled ? "USER REC ON" : "USER REC OFF"}
+            </button>
+            <button
+              onClick={() => setNoiseSuppression(!noiseSuppression)}
+              className={`p-1 rounded text-[10px] font-medium transition-colors border ${noiseSuppression ? "bg-purple-500/20 text-purple-300 border-purple-500/30" : "bg-slate-800 text-slate-500 border-slate-700"}`}
+              title={t.noiseSuppression}
+            >
+              {noiseSuppression ? "NR ON" : "NR OFF"}
+            </button>
+          </div>
         </div>
         <input
           type="range"
