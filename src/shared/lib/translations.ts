@@ -51,6 +51,7 @@ export const translations: Record<string, any> = {
     recording: "Запис",
     recordingOn: "Запис увімк.",
     recordingOff: "Запис вимк.",
+    userRecordingToggle: "Дозволити записувати мову користувача",
 
     mode: "Режим",
     modeConversation: "Чат",
@@ -145,6 +146,7 @@ export const translations: Record<string, any> = {
     recording: "Rec",
     recordingOn: "Rec On",
     recordingOff: "Rec Off",
+    userRecordingToggle: "Allow user voice recording",
 
     mode: "Mode",
     modeConversation: "Chat",
@@ -239,6 +241,7 @@ export const translations: Record<string, any> = {
     recording: "Nagr.",
     recordingOn: "Nagr. Wł.",
     recordingOff: "Nagr. Wył.",
+    userRecordingToggle: "Zezwalaj na nagrywanie głosu",
 
     mode: "Tryb",
     modeConversation: "Czat",
@@ -300,6 +303,7 @@ export const translations: Record<string, any> = {
     recording: "Aufn.",
     recordingOn: "Aufn. Ein",
     recordingOff: "Aufn. Aus",
+    userRecordingToggle: "Benutzer-Sprachaufzeichnung zulassen",
 
     mode: "Modus",
     modeConversation: "Chat",
@@ -362,6 +366,7 @@ export const translations: Record<string, any> = {
     recording: "Grab.",
     recordingOn: "Grab. Enc.",
     recordingOff: "Grab. Apag.",
+    userRecordingToggle: "Permitir grabación de voz del usuario",
 
     mode: "Modo",
     modeConversation: "Chat",
@@ -423,6 +428,7 @@ export const translations: Record<string, any> = {
     recording: "Enr.",
     recordingOn: "Enr. Act.",
     recordingOff: "Enr. Dés.",
+    userRecordingToggle: "Autoriser l'enregistrement de l'utilisateur",
 
     mode: "Mode",
     modeConversation: "Discussion",
@@ -484,6 +490,7 @@ export const translations: Record<string, any> = {
     recording: "Reg.",
     recordingOn: "Reg. On",
     recordingOff: "Reg. Off",
+    userRecordingToggle: "Consenti la registrazione dell'utente",
 
     mode: "Modalità",
     modeConversation: "Chat",
@@ -543,6 +550,7 @@ export const translations: Record<string, any> = {
     recording: "録音",
     recordingOn: "録音オン",
     recordingOff: "録音オフ",
+    userRecordingToggle: "ユーザーの音声録音を許可する",
 
     mode: "モード",
     modeConversation: "チャット",
@@ -603,6 +611,7 @@ export const translations: Record<string, any> = {
     recording: "Запись",
     recordingOn: "Запись вкл.",
     recordingOff: "Запись выкл.",
+    userRecordingToggle: "Разрешить запись речи пользователя",
 
     mode: "Режим",
     modeConversation: "Чат",

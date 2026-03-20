@@ -137,7 +137,7 @@ export const useGeminiLive = () => {
 
   // --- Flush unsaved buffers (reusable helper) ---
   const flushBuffers = useCallback(() => {
-    const { isRecordingEnabled } = useLiveStore.getState();
+    const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
 
     // Clear model response timeout
     if (modelResponseTimeoutRef.current) {
@@ -149,7 +149,7 @@ export const useGeminiLive = () => {
     if (transcriptionBufferRef.current.input.trim()) {
       const msgId = crypto.randomUUID();
       let hasAudio =
-        isRecordingEnabled && audioAccumulatorRef.current.input.length > 0;
+        isRecordingEnabled && isUserRecordingEnabled && audioAccumulatorRef.current.input.length > 0;
 
       if (hasAudio) {
         const combined = mergeBuffers(audioAccumulatorRef.current.input);
@@ -634,10 +634,10 @@ export const useGeminiLive = () => {
                     transcriptionBufferRef.current.input.trim() &&
                     transcriptionBufferRef.current.output.length === 0
                   ) {
-                    const { isRecordingEnabled } = useLiveStore.getState();
+                    const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled &&
+                      isRecordingEnabled && isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     if (hasAudio) {
@@ -675,13 +675,13 @@ export const useGeminiLive = () => {
                 }
 
                 if (content.turnComplete) {
-                  const { isRecordingEnabled } = useLiveStore.getState();
+                  const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
 
                   // --- SAVE REMAINDER USER TURN (if any) ---
                   if (transcriptionBufferRef.current.input.trim()) {
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled &&
+                      isRecordingEnabled && isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     // Save Audio
@@ -755,7 +755,7 @@ export const useGeminiLive = () => {
                   activeSourceNodesRef.current.clear();
 
                   nextStartTimeRef.current = 0;
-                  const { isRecordingEnabled } = useLiveStore.getState();
+                  const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
 
                   // Even if interrupted, save what we have for MODEL output
                   if (transcriptionBufferRef.current.output.trim()) {
@@ -789,7 +789,7 @@ export const useGeminiLive = () => {
                   if (transcriptionBufferRef.current.input.trim()) {
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled &&
+                      isRecordingEnabled && isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     if (hasAudio) {
