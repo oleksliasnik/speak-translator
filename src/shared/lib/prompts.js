@@ -761,6 +761,15 @@ Act as a professional but friendly interviewer. Ask questions, evaluate response
   },
 };
 
+const VOICE_GENDER_MAPPING = {
+  Puck: "non-binary", // Neutral/Child-like
+  Charon: "male",
+  Kore: "female",
+  Fenrir: "male",
+  Aoede: "female",
+  Zephyr: "female",
+};
+
 export function buildSystemPrompt(
   promptParts,
   customPrompt = "",
@@ -768,6 +777,7 @@ export function buildSystemPrompt(
   langParams = {},
   mode = "conversation",
   playbackSpeed = "normal",
+  voiceName = "Kore",
 ) {
   let intro = promptParts.intro;
   if (typeof intro === "function") {
@@ -780,6 +790,29 @@ export function buildSystemPrompt(
   }
 
   const sections = [intro];
+
+  // Add Gender Requirement
+  const gender = VOICE_GENDER_MAPPING[voiceName] || "female";
+  let genderInstruction = "";
+
+  if (gender === "non-binary") {
+    genderInstruction = `
+- You are speaking with a **non-binary** (gender-neutral) voice.
+- Always use **non-binary** grammatical forms for yourself (first-person).
+- In languages like Ukrainian or Russian, use **plural forms** for singular self-reference (the "they/them" equivalent for individuals).
+- For example: say "я прийшли", "я зробили", "я сьогодні втомлені" instead of singular forms. This is a strict requirement for this voice.`;
+  } else {
+    genderInstruction = `
+- You are speaking with a **${gender}** voice.
+- Always use the **${gender}** grammatical gender for yourself (first-person) in languages that have gendered verbs, adjectives, or pronouns (like Ukrainian, Russian, French, etc.).
+- For example, in Ukrainian, if your voice is female, say "я сказала" or "я була"; if male, say "я сказав" or "я був".`;
+  }
+
+  sections.push(
+    `
+
+**GENDER REQUIREMENT:**${genderInstruction}`,
+  );
 
   if (playbackSpeed && playbackSpeed !== "normal") {
     const speedInstructions = {
@@ -830,6 +863,7 @@ export function getSystemPrompt(
   mode = "conversation",
   langParams = {},
   playbackSpeed = "normal",
+  voiceName = "Kore",
 ) {
   let selectedProfile = profile;
 
@@ -849,5 +883,6 @@ export function getSystemPrompt(
     langParams,
     mode,
     playbackSpeed,
+    voiceName,
   );
 }

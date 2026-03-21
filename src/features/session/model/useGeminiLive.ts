@@ -336,6 +336,7 @@ export const useGeminiLive = () => {
           langB: translationTarget,
         },
         currentPlaybackRate,
+        voiceName,
       );
 
       // If we are NOT resuming, restore Context from previous messages manually
