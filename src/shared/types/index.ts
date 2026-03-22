@@ -23,4 +23,6 @@ export interface ChatSession {
   startTime: number;
   messages: Message[];
   voiceName?: string;
+  mode?: "conversation" | "translation";
+  promptProfile?: string;
 }
