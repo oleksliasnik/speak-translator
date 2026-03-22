@@ -7,7 +7,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Loader2 } from "lucide-react";
 
-const ChatList: React.FC = () => {
+interface ChatListProps {
+  onDoubleClick?: () => void;
+}
+
+const ChatList: React.FC<ChatListProps> = ({ onDoubleClick }) => {
   const { transcripts, streamingContent, interfaceLanguage, fontSize } =
     useLiveStore();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -31,7 +35,10 @@ const ChatList: React.FC = () => {
   }, [transcripts, streamingContent, isAtBottom]);
 
   return (
-    <div className="h-full w-full p-0 overflow-hidden flex flex-col relative">
+    <div 
+      className="h-full w-full p-0 overflow-hidden flex flex-col relative"
+      onDoubleClick={onDoubleClick}
+    >
       <div
         ref={scrollRef}
         onScroll={handleScroll}
