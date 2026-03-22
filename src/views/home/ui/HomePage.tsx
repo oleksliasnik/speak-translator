@@ -14,6 +14,7 @@ import { translations } from "@/shared/lib/translations";
 // Electron Integrations
 import { ResizeHandles } from "@/components/ResizeHandles";
 import { useSystemAudio, AudioMode } from "@/hooks/useSystemAudio";
+import OrbitVisualizer from "@/entities/chat/ui/OrbitVisualizer";
 
 export default function HomePage() {
   const {
@@ -22,6 +23,7 @@ export default function HomePage() {
     outputVolume,
     interfaceLanguage,
     startNewSession,
+    isMicOn,
   } = useLiveStore();
 
   const {
@@ -104,7 +106,7 @@ export default function HomePage() {
           // backgroundColor: `rgba(15, 23, 42, ${backgroundOpacity})`,
           backgroundColor: `rgba(8, 13, 26, ${backgroundOpacity})`,
           WebkitAppRegion: "drag",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any
       }
     >
@@ -140,7 +142,16 @@ export default function HomePage() {
         >
           {viewMode === "visualizer" ? (
             <div className="h-full w-full flex items-center justify-center">
-              <div className="relative w-full aspect-square max-w-[80px] max-h-full rounded-full flex items-center justify-center"></div>
+              <div className="relative w-full aspect-square max-w-[400px] max-h-full rounded-full flex items-center justify-center">
+                {isConnected && (
+                  <OrbitVisualizer
+                    inputLevel={inputVolume}
+                    outputLevel={outputVolume}
+                    isActive={isConnected}
+                    isMicOn={isMicOn}
+                  />
+                )}
+              </div>
             </div>
           ) : (
             <ChatList />

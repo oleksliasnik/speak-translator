@@ -193,6 +193,8 @@ export const useLiveStore = create<LiveStore>()(
               Date.now(),
             messages: newTranscripts,
             voiceName: state.voiceName, // Save current voice to session
+            mode: state.mode, // Save current mode to session
+            promptProfile: state.promptProfile, // Save current profile to session
           };
 
           // Fire and forget save
