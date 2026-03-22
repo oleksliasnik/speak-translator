@@ -31,6 +31,7 @@ export default function HomePage() {
     disconnect,
     sendTextMessage,
     setAudioMode: setGeminiAudioMode,
+    interrupt,
   } = useGeminiLive();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTextInputVisible, setIsTextInputVisible] = useState(false);
@@ -94,6 +95,12 @@ export default function HomePage() {
     }
   };
 
+  const handleInterrupt = () => {
+    if (isConnected) {
+      interrupt();
+    }
+  };
+
   // Electron Window Controls state
   const [backgroundOpacity, setBackgroundOpacity] = useState(0.9);
 
@@ -142,7 +149,10 @@ export default function HomePage() {
         >
           {viewMode === "visualizer" ? (
             <div className="h-full w-full flex items-center justify-center">
-              <div className="relative w-full aspect-square max-w-[400px] max-h-full rounded-full flex items-center justify-center">
+              <div 
+                className="relative w-full aspect-square max-w-[400px] max-h-full rounded-full flex items-center justify-center"
+                onDoubleClick={handleInterrupt}
+              >
                 {isConnected && (
                   <OrbitVisualizer
                     inputLevel={inputVolume}
@@ -154,7 +164,7 @@ export default function HomePage() {
               </div>
             </div>
           ) : (
-            <ChatList />
+            <ChatList onDoubleClick={handleInterrupt} />
           )}
           {/* Text Input Overlay */}
           <TextInput

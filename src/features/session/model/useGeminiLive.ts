@@ -1080,10 +1080,34 @@ export const useGeminiLive = () => {
     }
   }, []);
 
+  // API to interrupt currently streaming AI response manually
+  const interrupt = useCallback(() => {
+    stopAudio();
+    if (!sessionPromiseRef.current) return;
+
+    sessionPromiseRef.current.then((session) => {
+      try {
+        const s = session as any;
+        if (typeof s.sendClientContent === "function") {
+          // Send a turnComplete signal to interrupt the model
+          s.sendClientContent({ turnComplete: true });
+        } else if (typeof s.send === "function") {
+          s.send({ clientContent: { turnComplete: true } });
+        }
+      } catch (e) {
+        console.error("Error sending interrupt signal:", e);
+      }
+    });
+
+    // Optionally flag state so we ignore any trailing audio chunks that might arrive before the server completely stops
+    // But sending turnComplete: true usually aborts generation immediately on the server.
+  }, [stopAudio]);
+
   return {
     connect,
     disconnect,
     sendTextMessage: sendTextMessageWithInterrupt,
     setAudioMode,
+    interrupt,
   };
 };
