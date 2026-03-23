@@ -104,6 +104,17 @@ export const translations: Record<string, any> = {
     profilePresentation: "Презентація",
     profileNegotiation: "Переговори",
     profileExam: "Екзамен",
+
+    dataManagement: "Управління даними",
+    memoryUsage: "Використання пам'яті",
+    audio: "Аудіо",
+    text: "Текст",
+    allowMessageDeletion: "Дозволити видалення повідомлень",
+    allowAudioDeletion: "Дозволити видалення аудіозаписів",
+    dataManagementDesc:
+      "Коли увімкнено, використовуйте значки кошика в чатах, щоб вибірково звільнити місце, не втрачаючи історію розмов.",
+    confirmDeleteMessage: "Ви впевнені, що хочете видалити це повідомлення?",
+    confirmDeleteAudio: "Ви впевнені, що хочете видалити аудіо для цього повідомлення?",
   },
   en: {
     menu: "Menu",
@@ -199,6 +210,18 @@ export const translations: Record<string, any> = {
     profilePresentation: "Presentation",
     profileNegotiation: "Negotiation",
     profileExam: "Exam",
+
+    dataManagement: "Data Management",
+    memoryUsage: "Memory usage",
+    audio: "Audio",
+    text: "Text",
+    allowMessageDeletion: "Allow deleting messages",
+    allowAudioDeletion: "Allow deleting audio recordings",
+    dataManagementDesc:
+      "When enabled, find the trash icons in your chats to selectively free up space without losing your conversation history.",
+    confirmDeleteMessage: "Are you sure you want to delete this message?",
+    confirmDeleteAudio:
+      "Are you sure you want to delete the audio for this message?",
   },
   pl: {
     menu: "Menu",
@@ -262,6 +285,18 @@ export const translations: Record<string, any> = {
     clearAll: "Clear All",
     langA: "Language A",
     langB: "Language B",
+
+    dataManagement: "Zarządzanie danymi",
+    memoryUsage: "Zużycie pamięci",
+    audio: "Audio",
+    text: "Tekst",
+    allowMessageDeletion: "Zezwalaj na usuwanie wiadomości",
+    allowAudioDeletion: "Zezwalaj na usuwanie nagrań audio",
+    dataManagementDesc:
+      "Po włączeniu znajdziesz ikony kosza w swoich czatach, aby selektywnie zwolnić miejsce bez utraty historii rozmów.",
+    confirmDeleteMessage: "Czy na pewno chcesz usunąć tę wiadomość?",
+    confirmDeleteAudio:
+      "Czy na pewno chcesz usunąć nagranie audio dla tej wiadomości?",
   },
   de: {
     menu: "Menü",
@@ -325,6 +360,18 @@ export const translations: Record<string, any> = {
     clearAll: "Clear All",
     langA: "Sprache A",
     langB: "Sprache B",
+
+    dataManagement: "Datenverwaltung",
+    memoryUsage: "Speichernutzung",
+    audio: "Audio",
+    text: "Text",
+    allowMessageDeletion: "Löschen von Nachrichten zulassen",
+    allowAudioDeletion: "Löschen von Audioaufnahmen zulassen",
+    dataManagementDesc:
+      "Wenn aktiviert, finden Sie die Papierkorb-Symbole in Ihren Chats, um selektiv Platz freizugeben, ohne Ihren Gesprächsverlauf zu verlieren.",
+    confirmDeleteMessage: "Sind Sie sicher, dass Sie diese Nachricht löschen möchten?",
+    confirmDeleteAudio:
+      "Sind Sie sicher, dass Sie das Audio für diese Nachricht löschen möchten?",
   },
   es: {
     menu: "Menú",
@@ -387,6 +434,18 @@ export const translations: Record<string, any> = {
     clearAll: "Clear All",
     langA: "Language A",
     langB: "Language B",
+
+    dataManagement: "Gestión de datos",
+    memoryUsage: "Uso de memoria",
+    audio: "Audio",
+    text: "Texto",
+    allowMessageDeletion: "Permitir eliminar mensajes",
+    allowAudioDeletion: "Permitir eliminar grabaciones de audio",
+    dataManagementDesc:
+      "Cuando esté activado, busca los iconos de papelera en tus chats para liberar espacio de forma selectiva sin perder tu historial de conversación.",
+    confirmDeleteMessage: "¿Estás seguro de que deseas eliminar este mensaje?",
+    confirmDeleteAudio:
+      "¿Estás seguro de que deseas eliminar el audio de este mensaje?",
   },
   fr: {
     menu: "Menu",
@@ -449,6 +508,18 @@ export const translations: Record<string, any> = {
     clearAll: "Clear All",
     langA: "Language A",
     langB: "Language B",
+
+    dataManagement: "Gestion des données",
+    memoryUsage: "Utilisation de la mémoire",
+    audio: "Audio",
+    text: "Texte",
+    allowMessageDeletion: "Autoriser la suppression des messages",
+    allowAudioDeletion: "Autoriser la suppression des enregistrements audio",
+    dataManagementDesc:
+      "Une fois activé, recherchez les icônes de corbeille dans vos discussions pour libérer de l'espace de manière sélective sans perdre votre historique de conversation.",
+    confirmDeleteMessage: "Êtes-vous sûr de vouloir supprimer ce message ?",
+    confirmDeleteAudio:
+      "Êtes-vous sûr de vouloir supprimer l'audio de ce message?",
   },
   it: {
     menu: "Menù",
@@ -509,6 +580,18 @@ export const translations: Record<string, any> = {
     systemInstructionPlaceholder: "Inserisci istruzioni personalizzate...",
     currentMode: "Current Mode",
     clearAll: "Clear All",
+
+    dataManagement: "Gestione dati",
+    memoryUsage: "Utilizzo memoria",
+    audio: "Audio",
+    text: "Testo",
+    allowMessageDeletion: "Consenti l'eliminazione dei messaggi",
+    allowAudioDeletion: "Consenti l'eliminazione delle registrazioni audio",
+    dataManagementDesc:
+      "Quando abilitato, trova le icone del cestino nelle tue chat per liberare spazio in modo selettivo senza perdere la cronologia delle conversazioni.",
+    confirmDeleteMessage: "Sei sicuro di voler eliminare questo messaggio?",
+    confirmDeleteAudio:
+      "Sei sicuro di voler eliminare l'audio per questo messaggio?",
   },
   ja: {
     menu: "メニュー",
@@ -569,6 +652,17 @@ export const translations: Record<string, any> = {
     systemInstructionPlaceholder: "カスタム指示を入力してください...",
     currentMode: "Current Mode",
     clearAll: "Clear All",
+
+    dataManagement: "データ管理",
+    memoryUsage: "メモリ使用量",
+    audio: "音声",
+    text: "テキスト",
+    allowMessageDeletion: "メッセージの削除を許可する",
+    allowAudioDeletion: "音声録音の削除を許可する",
+    dataManagementDesc:
+      "有効にすると、チャット内のゴミ箱アイコンを使用して、会話履歴を失うことなく選択的にスペースを解放できます。",
+    confirmDeleteMessage: "このメッセージを削除してもよろしいですか？",
+    confirmDeleteAudio: "このメッセージの音声を削除してもよろしいですか？",
   },
   ru: {
     menu: "Меню",
@@ -639,7 +733,7 @@ export const translations: Record<string, any> = {
     apiKeyFreeTry: "Генеративный ИИ можно попробовать бесплатно с Gemini.",
     systemInstruction: "Пользовательские инструкции ИИ",
     systemInstructionPlaceholder:
-      "Добавьте пользовательские инструкции и контекст для более точного поведения ИИ...",
+      "Додайте користувацькі інструкції та контекст для більш точної поведінки AI...",
     currentMode: "Текущий режим",
     clearAll: "Очистить всё",
 
@@ -664,5 +758,17 @@ export const translations: Record<string, any> = {
     profilePresentation: "Презентация",
     profileNegotiation: "Переговоры",
     profileExam: "Экзамен",
+
+    dataManagement: "Управление данными",
+    memoryUsage: "Использование памяти",
+    audio: "Аудио",
+    text: "Текст",
+    allowMessageDeletion: "Разрешить удаление сообщений",
+    allowAudioDeletion: "Разрешить удаление аудиозаписей",
+    dataManagementDesc:
+      "Когда включено, используйте значки корзины в чатах, чтобы выборочно освободить место, не теряя историю переписки.",
+    confirmDeleteMessage: "Вы уверены, что хотите удалить это сообщение?",
+    confirmDeleteAudio:
+      "Вы уверены, что хотите удалить аудио для этого сообщения?",
   },
 };
