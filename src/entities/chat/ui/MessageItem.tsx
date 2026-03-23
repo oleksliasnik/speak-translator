@@ -6,6 +6,9 @@ import { getAudio } from "@/shared/lib/db";
 import { useLiveStore } from "@/app/store/useLiveStore";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Trash2, MicOff } from "lucide-react";
+import ConfirmationModal from "@/components/ConfirmationModal";
+import { translations } from "@/shared/lib/translations";
 
 interface MessageItemProps {
   msg: Message;
@@ -13,8 +16,21 @@ interface MessageItemProps {
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
-  const { currentlyPlayingAudioId, setCurrentlyPlayingAudioId, fontSize } =
-    useLiveStore();
+  const {
+    currentlyPlayingAudioId,
+    setCurrentlyPlayingAudioId,
+    fontSize,
+    isMessageDeletionEnabled,
+    isAudioDeletionEnabled,
+    deleteMessage,
+    deleteAudio,
+    currentSessionId,
+    interfaceLanguage,
+  } = useLiveStore();
+  const t = translations[interfaceLanguage] || translations["uk"];
+
+  const [confirmMessageDelete, setConfirmMessageDelete] = useState(false);
+  const [confirmAudioDelete, setConfirmAudioDelete] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -150,6 +166,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
   // Calculate progress percentage
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  const handleDeleteMessage = async () => {
+    if (currentSessionId) {
+      await deleteMessage(currentSessionId, msg.id);
+    }
+  };
+
+  const handleDeleteAudio = async () => {
+    if (currentSessionId) {
+      await deleteAudio(currentSessionId, msg.id);
+    }
+  };
+
   return (
     <div
       className={`flex flex-col ${isUser ? "items-end" : "items-start"} mb-5 ${className || ""}`}
@@ -180,6 +208,45 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
             <Copy className="w-3.5 h-3.5" />
           )}
         </button>
+
+        {/* Delete Message Button */}
+        {isMessageDeletionEnabled && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmMessageDelete(true);
+            }}
+            className={`
+                absolute top-0 right-7 p-1.5 rounded-lg transition-all z-10
+                text-red-400 hover:bg-red-500/20
+                md:opacity-0 md:group-hover:opacity-100 
+                opacity-40 hover:opacity-100
+            `}
+            title="Delete message"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Delete Audio Button */}
+        {isAudioDeletionEnabled && msg.hasAudio && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmAudioDelete(true);
+            }}
+            className={`
+                absolute top-0 ${isMessageDeletionEnabled ? "right-14" : "right-7"} p-1.5 rounded-lg transition-all z-10
+                text-yellow-400 hover:bg-yellow-500/20
+                md:opacity-0 md:group-hover:opacity-100 
+                opacity-40 hover:opacity-100
+            `}
+            title="Delete audio"
+          >
+            <MicOff className="w-3.5 h-3.5" />
+          </button>
+        )}
+
         <div
           className="wrap-break-word whitespace-pre-wrap prose prose-invert prose-sm max-w-none"
           style={{ fontSize: `${fontSize}rem` }}
@@ -251,6 +318,22 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
           minute: "2-digit",
         })}
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmMessageDelete}
+        onClose={() => setConfirmMessageDelete(false)}
+        onConfirm={handleDeleteMessage}
+        title={t.delete}
+        message={t.confirmDeleteMessage}
+      />
+
+      <ConfirmationModal
+        isOpen={confirmAudioDelete}
+        onClose={() => setConfirmAudioDelete(false)}
+        onConfirm={handleDeleteAudio}
+        title={t.delete}
+        message={t.confirmDeleteAudio}
+      />
     </div>
   );
 };
