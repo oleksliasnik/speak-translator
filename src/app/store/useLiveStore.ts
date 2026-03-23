@@ -1,7 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ConnectionStatus, Message, ChatSession } from "@/shared/types";
-import { getSessions, saveSession, deleteSessionById } from "@/shared/lib/db";
+import {
+  getSessions,
+  saveSession,
+  deleteSessionById,
+  calculateStorageSize,
+  deleteMessageFromSession,
+  deleteAudioFromMessage,
+} from "@/shared/lib/db";
  
 export type PlaybackSpeed = "slow" | "very_slow" | "normal" | "fast" | "very_fast";
 
@@ -41,6 +48,11 @@ interface LiveStore {
   // Transient State (not persisted)
   currentlyPlayingAudioId: string | null;
 
+  // Data Management
+  isMessageDeletionEnabled: boolean;
+  isAudioDeletionEnabled: boolean;
+  storageInfo: { audioSize: number; textSize: number } | null;
+
   // Actions
   setStatus: (status: ConnectionStatus) => void;
   setError: (error: string | null) => void;
@@ -75,6 +87,13 @@ interface LiveStore {
   loadHistory: () => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   setCurrentlyPlayingAudioId: (id: string | null) => void;
+
+  setMessageDeletionEnabled: (enabled: boolean) => void;
+  setAudioDeletionEnabled: (enabled: boolean) => void;
+  updateStorageInfo: () => Promise<void>;
+  deleteMessage: (sessionId: string, messageId: string) => Promise<void>;
+  deleteAudio: (sessionId: string, messageId: string) => Promise<void>;
+
   reset: () => void;
 }
 
@@ -112,6 +131,10 @@ export const useLiveStore = create<LiveStore>()(
       history: [],
 
       currentlyPlayingAudioId: null,
+
+      isMessageDeletionEnabled: false,
+      isAudioDeletionEnabled: false,
+      storageInfo: null,
 
       setStatus: (status) => set({ status }),
       setError: (errorMessage) => set({ errorMessage }),
@@ -234,6 +257,42 @@ export const useLiveStore = create<LiveStore>()(
 
       setCurrentlyPlayingAudioId: (id) => set({ currentlyPlayingAudioId: id }),
 
+      setMessageDeletionEnabled: (isMessageDeletionEnabled) =>
+        set({ isMessageDeletionEnabled }),
+      setAudioDeletionEnabled: (isAudioDeletionEnabled) =>
+        set({ isAudioDeletionEnabled }),
+
+      updateStorageInfo: async () => {
+        const info = await calculateStorageSize();
+        set({ storageInfo: info });
+      },
+
+      deleteMessage: async (sessionId, messageId) => {
+        await deleteMessageFromSession(sessionId, messageId);
+        // Update local state if it's the current session
+        if (get().currentSessionId === sessionId) {
+          set((state) => ({
+            transcripts: state.transcripts.filter((m) => m.id !== messageId),
+          }));
+        }
+        await get().loadHistory();
+        await get().updateStorageInfo();
+      },
+
+      deleteAudio: async (sessionId, messageId) => {
+        await deleteAudioFromMessage(sessionId, messageId);
+        // Update local state if it's the current session
+        if (get().currentSessionId === sessionId) {
+          set((state) => ({
+            transcripts: state.transcripts.map((m) =>
+              m.id === messageId ? { ...m, hasAudio: false } : m,
+            ),
+          }));
+        }
+        await get().loadHistory();
+        await get().updateStorageInfo();
+      },
+
       reset: () =>
         set({
           status: ConnectionStatus.DISCONNECTED,
@@ -266,6 +325,8 @@ export const useLiveStore = create<LiveStore>()(
         resumptionToken: state.resumptionToken, // Persist token to survive refreshes
         fontSize: state.fontSize,
         promptProfile: state.promptProfile,
+        isMessageDeletionEnabled: state.isMessageDeletionEnabled,
+        isAudioDeletionEnabled: state.isAudioDeletionEnabled,
       }),
     },
   ),

@@ -117,3 +117,84 @@ export const getAudio = async (
     request.onerror = () => reject(request.error);
   });
 };
+
+export const calculateStorageSize = async (): Promise<{
+  audioSize: number;
+  textSize: number;
+}> => {
+  const db = await initDB();
+  const tx = db.transaction([STORE_SESSIONS, STORE_AUDIO], "readonly");
+  const sessionStore = tx.objectStore(STORE_SESSIONS);
+  const audioStore = tx.objectStore(STORE_AUDIO);
+
+  const [sessions, audios] = await Promise.all([
+    new Promise<ChatSession[]>((resolve, reject) => {
+      const req = sessionStore.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    }),
+    new Promise<Blob[]>((resolve, reject) => {
+      const req = audioStore.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    }),
+  ]);
+
+  const audioSize = audios.reduce((acc, blob) => acc + blob.size, 0);
+  const textSize = new TextEncoder().encode(JSON.stringify(sessions)).length;
+
+  return { audioSize, textSize };
+};
+
+export const deleteMessageFromSession = async (
+  sessionId: string,
+  messageId: string,
+): Promise<void> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_SESSIONS, STORE_AUDIO], "readwrite");
+    const sessionStore = tx.objectStore(STORE_SESSIONS);
+    const audioStore = tx.objectStore(STORE_AUDIO);
+
+    const getReq = sessionStore.get(sessionId);
+    getReq.onsuccess = () => {
+      const session = getReq.result as ChatSession;
+      if (session) {
+        session.messages = session.messages.filter((m) => m.id !== messageId);
+        sessionStore.put(session);
+        audioStore.delete(messageId);
+      }
+    };
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+export const deleteAudioFromMessage = async (
+  sessionId: string,
+  messageId: string,
+): Promise<void> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_SESSIONS, STORE_AUDIO], "readwrite");
+    const sessionStore = tx.objectStore(STORE_SESSIONS);
+    const audioStore = tx.objectStore(STORE_AUDIO);
+
+    const getReq = sessionStore.get(sessionId);
+    getReq.onsuccess = () => {
+      const session = getReq.result as ChatSession;
+      if (session) {
+        const msg = session.messages.find((m) => m.id === messageId);
+        if (msg) {
+          msg.hasAudio = false;
+          sessionStore.put(session);
+          audioStore.delete(messageId);
+        }
+      }
+    };
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+};

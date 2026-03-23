@@ -6,8 +6,9 @@ import { translations } from "@/shared/lib/translations";
 import Settings from "./Settings";
 import ChatHistory from "@/widgets/chat-window/ui/ChatHistory";
 import { profilePrompts } from "@/shared/lib/prompts";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown, Sparkles, Database } from "lucide-react";
 import CustomInstructionSettings from "@/entities/settings/ui/CustomInstructionSettings";
+import DataManagementModal from "@/entities/settings/ui/DataManagementModal";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   onVoiceChange,
 }) => {
+  const [isDataModalOpen, setIsDataModalOpen] = React.useState(false);
   const { interfaceLanguage, promptProfile, setPromptProfile } = useLiveStore();
   const t = translations[interfaceLanguage] || translations["uk"];
 
@@ -111,7 +113,27 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <Settings onVoiceChange={onVoiceChange} />
+
+        {/* Data Management Button */}
+        <div className="bg-slate-900 border-t border-slate-800">
+          <button
+            onClick={() => setIsDataModalOpen(true)}
+            className="w-full p-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors group outline-none"
+          >
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-slate-100 group-hover:text-blue-400 transition-colors" />
+              <span className="text-sm font-bold text-slate-100 group-hover:text-blue-400 transition-colors">
+                {t.dataManagement}
+              </span>
+            </div>
+          </button>
+        </div>
       </div>
+
+      <DataManagementModal
+        isOpen={isDataModalOpen}
+        onClose={() => setIsDataModalOpen(false)}
+      />
     </>
   );
 };
