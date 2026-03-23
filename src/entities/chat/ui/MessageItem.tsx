@@ -6,7 +6,7 @@ import { getAudio } from "@/shared/lib/db";
 import { useLiveStore } from "@/app/store/useLiveStore";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Trash2, MicOff } from "lucide-react";
+import { Trash2, MicOff, ChevronUp } from "lucide-react";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { translations } from "@/shared/lib/translations";
 
@@ -31,6 +31,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
 
   const [confirmMessageDelete, setConfirmMessageDelete] = useState(false);
   const [confirmAudioDelete, setConfirmAudioDelete] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -165,6 +166,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
 
   // Calculate progress percentage
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const showProgress =
+    msg.hasAudio &&
+    (isPlaying || (currentTime > 0 && currentTime < duration - 0.05));
 
   const handleDeleteMessage = async () => {
     if (currentSessionId) {
@@ -184,12 +188,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
     >
       <div
         className={`
-            relative max-w-[98%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm group
-            ${
-              isUser
-                ? "bg-blue-600/20 text-blue-100 rounded-br-sm border border-blue-500/20"
-                : "bg-slate-800/50 text-slate-200 rounded-bl-sm border border-slate-700"
-            }
+            relative max-w-[98%] rounded-2xl text-sm leading-relaxed shadow-sm group transition-all duration-300
+            ${isUser ? "bg-blue-600/20 text-blue-100 rounded-br-sm border border-blue-500/20" : "bg-slate-800/50 text-slate-200 rounded-bl-sm border border-slate-700"}
+            ${isCollapsed ? "py-1.5 px-4 min-h-[40px]" : "p-4"}
         `}
       >
         <button
@@ -248,10 +249,19 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
         )}
 
         <div
-          className="wrap-break-word whitespace-pre-wrap prose prose-invert prose-sm max-w-none"
-          style={{ fontSize: `${fontSize}rem` }}
+          className={`
+            transition-all duration-300 ease-in-out
+            ${isCollapsed ? "max-h-0 opacity-0 overflow-hidden" : "max-h-[2000px] opacity-100 mt-0"}
+          `}
         >
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+          <div
+            className="wrap-break-word whitespace-pre-wrap prose prose-invert prose-sm max-w-none"
+            style={{ fontSize: `${fontSize}rem` }}
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {msg.text}
+            </ReactMarkdown>
+          </div>
         </div>
         {msg.hasAudio && (
           <>
@@ -277,8 +287,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
               )}
             </button>
 
-            {/* Interactive Progress Bar - Visible only when playing */}
-            {isPlaying && (
+            {/* Interactive Progress Bar - Visible when playing or paused with progress */}
+            {showProgress && (
               <div className="absolute bottom-0 left-1 right-1 h-3 z-10 group/slider">
                 {/* Invisible range input for interaction (larger hit area) */}
                 <input
@@ -310,6 +320,26 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
             )}
           </>
         )}
+
+        {/* Collapse/Expand Toggle Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsCollapsed(!isCollapsed);
+          }}
+          className={`
+              absolute -bottom-1 ${isUser && msg.hasAudio ? "left-5" : isUser ? "left-2" : "left-0"}
+              w-6 h-6 rounded-full flex items-center justify-center 
+              text-slate-500 hover:text-white
+          `}
+          title={isCollapsed ? "Expand" : "Collapse"}
+        >
+          {isCollapsed ? (
+            <ChevronUp className="w-4 h-4 transition-transform -translate-y-2.5 rotate-180" />
+          ) : (
+            <ChevronUp className="w-4 h-4" />
+          )}
+        </button>
       </div>
 
       <div className="text-[10px] text-slate-500 mt-2 px-1 opacity-70">
