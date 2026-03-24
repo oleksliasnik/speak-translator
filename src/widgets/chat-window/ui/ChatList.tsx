@@ -35,7 +35,7 @@ const ChatList: React.FC<ChatListProps> = ({ onDoubleClick }) => {
   }, [transcripts, streamingContent, isAtBottom]);
 
   return (
-    <div 
+    <div
       className="h-full w-full p-0 overflow-hidden flex flex-col relative"
       onDoubleClick={onDoubleClick}
     >
@@ -44,7 +44,7 @@ const ChatList: React.FC<ChatListProps> = ({ onDoubleClick }) => {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto space-y-4 pr-1 pb-10 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
       >
-        <div className="h-full max-w-[90%] mx-auto">
+        <div className="h-full max-w-[95%] sm:max-w-[90%] xl:max-w-[80%] mx-auto">
           {transcripts.length === 0 && !streamingContent && (
             <div className="h-full flex items-center justify-center text-slate-600 text-sm italic">
               {t.startPrompt}
