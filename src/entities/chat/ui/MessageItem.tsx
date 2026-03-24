@@ -38,7 +38,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Watch for other audios playing to pause this one
   useEffect(() => {
@@ -182,14 +184,35 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
     }
   };
 
+  const toggleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const el = contentRef.current;
+    if (!el) return;
+
+    if (isCollapsed) {
+      // Expand
+      setMeasuredHeight(el.scrollHeight);
+      setIsCollapsed(false);
+    } else {
+      // Collapse
+      setMeasuredHeight(el.scrollHeight);
+
+      requestAnimationFrame(() => {
+        setMeasuredHeight(0);
+        setIsCollapsed(true);
+      });
+    }
+  };
+
   return (
     <div
       className={`flex flex-col ${isUser ? "items-end" : "items-start"} mb-5 ${className || ""}`}
     >
       <div
         className={`
-            relative max-w-[98%] rounded-2xl text-sm leading-relaxed shadow-sm group transition-all duration-300
-            ${isUser ? "bg-blue-600/20 text-blue-100 rounded-br-sm border border-blue-500/20" : "bg-slate-800/50 text-slate-200 rounded-bl-sm border border-slate-700"}
+            relative rounded-2xl text-sm leading-relaxed shadow-sm group transition-all duration-300
+            ${isUser ? "max-w-[95%] bg-blue-600/20 text-blue-100 rounded-br-sm border border-blue-500/20" : "max-w-full bg-slate-800/50 text-slate-200 rounded-bl-sm border border-slate-700"}
             ${isCollapsed ? "py-1.5 px-4 min-h-[40px]" : "p-4"}
         `}
       >
@@ -249,10 +272,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
         )}
 
         <div
+          ref={contentRef}
           className={`
             transition-all duration-300 ease-in-out
-            ${isCollapsed ? "max-h-0 opacity-0 overflow-hidden" : "max-h-[2000px] opacity-100 mt-0"}
+            ${isCollapsed ? "opacity-0 overflow-hidden" : "opacity-100 mt-0"}
           `}
+          style={{
+            height: isCollapsed ? "0px" : `${measuredHeight}px`,
+          }}
         >
           <div
             className="wrap-break-word whitespace-pre-wrap prose prose-invert prose-sm max-w-none"
@@ -323,10 +350,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
 
         {/* Collapse/Expand Toggle Button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsCollapsed(!isCollapsed);
-          }}
+          onClick={toggleCollapse}
           className={`
               absolute -bottom-1 ${isUser && msg.hasAudio ? "left-5" : isUser ? "left-2" : "left-0"}
               w-6 h-6 rounded-full flex items-center justify-center 
@@ -344,6 +368,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
 
       <div className="text-[10px] text-slate-500 mt-2 px-1 opacity-70">
         {new Date(msg.timestamp).toLocaleTimeString([], {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
           hour: "2-digit",
           minute: "2-digit",
         })}
