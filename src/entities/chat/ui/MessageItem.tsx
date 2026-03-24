@@ -193,7 +193,10 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
     if (isCollapsed) {
       // Expand
       setMeasuredHeight(el.scrollHeight);
-      setIsCollapsed(false);
+      // Wait a frame for height to be applied before expanding
+      requestAnimationFrame(() => {
+        setIsCollapsed(false);
+      });
     } else {
       // Collapse
       setMeasuredHeight(el.scrollHeight);
@@ -211,9 +214,9 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
     >
       <div
         className={`
-            relative rounded-2xl text-sm leading-relaxed shadow-sm group transition-all duration-300
+            relative min-h-[40px] p-4 rounded-2xl text-sm leading-relaxed shadow-sm group transition-all duration-300
             ${isUser ? "max-w-[95%] bg-blue-600/20 text-blue-100 rounded-br-sm border border-blue-500/20" : "max-w-full bg-slate-800/50 text-slate-200 rounded-bl-sm border border-slate-700"}
-            ${isCollapsed ? "py-1.5 px-4 min-h-[40px]" : "p-4"}
+            
         `}
       >
         <button
@@ -274,11 +277,20 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
         <div
           ref={contentRef}
           className={`
-            transition-all duration-300 ease-in-out
-            ${isCollapsed ? "opacity-0 overflow-hidden" : "opacity-100 mt-0"}
+            transition-all duration-300 ease-in-out overflow-hidden
+            ${isCollapsed ? "opacity-0" : "opacity-100"}
           `}
           style={{
-            height: isCollapsed ? "0px" : `${measuredHeight}px`,
+            maxHeight: isCollapsed
+              ? "0px"
+              : measuredHeight === null
+                ? "none"
+                : `${measuredHeight}px`,
+          }}
+          onTransitionEnd={() => {
+            if (!isCollapsed) {
+              setMeasuredHeight(null);
+            }
           }}
         >
           <div
