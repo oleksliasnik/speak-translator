@@ -1,8 +1,9 @@
 export const LANGUAGES = [
   { code: "auto", name: "Universal" },
-  { code: "uk-UA", name: "UK Українська" },
   { code: "en-US", name: "EN English" },
+  { code: "uk-UA", name: "UK Українська" },
   { code: "de-DE", name: "DE Deutsch" },
+  { code: "ru-RU", name: "RU Русский" },
   { code: "pl-PL", name: "PL Polski" },
   { code: "et-EE", name: "ET Eesti" },
   { code: "lv-LV", name: "LV Latviešu" },
@@ -31,7 +32,6 @@ export const LANGUAGES = [
   { code: "hu-HU", name: "HU Magyar" },
   { code: "ro-RO", name: "RO Romanian" },
   { code: "mo-MD", name: "MD Moldovan" },
-  { code: "ru-RU", name: "RU Русский" },
   { code: "ka-GE", name: "GE Kartuli" },
   { code: "hy-AM", name: "AM Հայերեն" },
   { code: "az-AZ", name: "AZ Azərbaycan" },
