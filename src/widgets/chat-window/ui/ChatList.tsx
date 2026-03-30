@@ -69,11 +69,11 @@ const ChatList: React.FC<ChatListProps> = ({ onDoubleClick }) => {
             >
               <div
                 className={`
-                    max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm
+                    rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm
                     ${
                       streamingContent.role === "user"
-                        ? "bg-blue-600/10 text-blue-200 rounded-br-sm border border-blue-500/10"
-                        : "bg-slate-800/50 text-slate-300 rounded-bl-sm border border-slate-700/50"
+                        ? "max-w-[95%] bg-blue-600/10 text-blue-200 rounded-br-sm border border-blue-500/10"
+                        : "max-w-full bg-slate-800/50 text-slate-300 rounded-bl-sm border border-slate-700/50"
                     }
                 `}
                 style={{ fontSize: `${fontSize}rem` }}

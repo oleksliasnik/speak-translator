@@ -29,14 +29,14 @@ const VolumeControls: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => setIsUserRecordingEnabled(!isUserRecordingEnabled)}
-              className={`p-1 rounded text-[10px] font-medium transition-colors border ${isUserRecordingEnabled ? "bg-red-500/20 text-red-300 border-red-500/30" : "bg-slate-800 text-slate-500 border-slate-700"}`}
+              className={`p-1 w-[75px] text-left rounded text-[10px] font-medium transition-colors border ${isUserRecordingEnabled ? "bg-red-500/20 text-red-300 border-red-500/30" : "bg-slate-800 text-slate-500 border-slate-700"}`}
               title={t.userRecordingToggle}
             >
               {isUserRecordingEnabled ? "USER REC ON" : "USER REC OFF"}
             </button>
             <button
               onClick={() => setNoiseSuppression(!noiseSuppression)}
-              className={`p-1 rounded text-[10px] font-medium transition-colors border ${noiseSuppression ? "bg-purple-500/20 text-purple-300 border-purple-500/30" : "bg-slate-800 text-slate-500 border-slate-700"}`}
+              className={`p-1 w-[45px] rounded text-[10px] text-left font-medium transition-colors border ${noiseSuppression ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : "bg-slate-800 text-slate-500 border-slate-700"}`}
               title={t.noiseSuppression}
             >
               {noiseSuppression ? "NR ON" : "NR OFF"}
@@ -50,7 +50,7 @@ const VolumeControls: React.FC = () => {
           step="0.1"
           value={inputGain}
           onChange={(e) => setInputGain(parseFloat(e.target.value))}
-          className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+          className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
           title={`${t.mic}: ${(inputGain * 100).toFixed(0)}%`}
         />
       </div>
@@ -65,7 +65,7 @@ const VolumeControls: React.FC = () => {
           step="0.1"
           value={outputGain}
           onChange={(e) => setOutputGain(parseFloat(e.target.value))}
-          className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-400 hover:accent-purple-500"
           title={`${t.volume}: ${(outputGain * 100).toFixed(0)}%`}
         />
       </div>

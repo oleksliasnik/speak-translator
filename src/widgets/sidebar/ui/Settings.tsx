@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Settings as SettingsIcon, ChevronUp } from "lucide-react";
+import { Settings as SettingsIcon, ChevronUp, X } from "lucide-react";
 import { useLiveStore } from "@/app/store/useLiveStore";
 import { translations } from "@/shared/lib/translations";
 import InterfaceLanguageSettings from "@/entities/settings/ui/InterfaceLanguageSettings";
@@ -10,20 +10,34 @@ import VolumeControls from "@/entities/chat/ui/VolumeControls";
 
 interface SettingsProps {
   onVoiceChange: () => void;
+  isSidebarOpen: boolean;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onVoiceChange }) => {
+const Settings: React.FC<SettingsProps> = ({
+  onVoiceChange,
+  isSidebarOpen,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const { interfaceLanguage } = useLiveStore();
   const t = translations[interfaceLanguage] || translations["uk"];
 
   return (
-    <div className="bg-slate-900 border-t border-slate-800">
+    <div
+      className={`relative ${isOpen && isSidebarOpen ? "translate-x-3 duration-300 transition-transform ease-in-out" : "translate-x-0 duration-300 transition-transform ease-in-out"} bg-slate-900 border-t border-slate-800`}
+    >
       <div
         className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
           isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         }`}
       >
+        {isOpen && (
+          <button
+            onClick={() => setIsOpen(false)}
+            className="absolute top-0.5 right-0.5 p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
         <div className="overflow-hidden bg-slate-950/50">
           <div className="max-h-[60vh] overflow-y-auto custom-scrollbar shadow-inner">
             <InterfaceLanguageSettings />

@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Pause, Loader2, Copy, Check } from "lucide-react";
+import { Play, Pause, Loader2, Copy, Check, ChevronDown } from "lucide-react";
 import { Message } from "@/shared/types";
 import { getAudio } from "@/shared/lib/db";
 import { useLiveStore } from "@/app/store/useLiveStore";
@@ -214,11 +214,28 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
     >
       <div
         className={`
-            relative min-h-[40px] p-4 rounded-2xl text-sm leading-relaxed shadow-sm group transition-all duration-300
+            relative min-h-[50px] p-4 pt-6 rounded-2xl text-sm leading-relaxed shadow-sm group transition-all duration-300
             ${isUser ? "max-w-[95%] bg-blue-600/20 text-blue-100 rounded-br-sm border border-blue-500/20" : "max-w-full bg-slate-800/50 text-slate-200 rounded-bl-sm border border-slate-700"}
             
         `}
       >
+        {/* Collapse/Expand Toggle Button */}
+        <button
+          onClick={toggleCollapse}
+          className={`
+              absolute top-0 left-0
+              w-6 h-6 rounded-full flex items-center justify-center 
+              text-slate-500 hover:text-white
+              ${isCollapsed ? "transition-transform duration-300 translate-y-3 rotate-180" : "transition-transform duration-300 translate-y-0 rotate-0"}
+          `}
+          title={isCollapsed ? "Expand" : "Collapse"}
+        >
+          {isCollapsed ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronUp className="w-4 h-4" />
+          )}
+        </button>
         <button
           onClick={handleCopy}
           className={`
@@ -277,7 +294,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
         <div
           ref={contentRef}
           className={`
-            transition-all duration-300 ease-in-out overflow-hidden
+            transition-all duration-500 ease-in-out overflow-hidden
             ${isCollapsed ? "opacity-0" : "opacity-100"}
           `}
           style={{
@@ -359,23 +376,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, className }) => {
             )}
           </>
         )}
-
-        {/* Collapse/Expand Toggle Button */}
-        <button
-          onClick={toggleCollapse}
-          className={`
-              absolute -bottom-1 ${isUser && msg.hasAudio ? "left-5" : isUser ? "left-2" : "left-0"}
-              w-6 h-6 rounded-full flex items-center justify-center 
-              text-slate-500 hover:text-white
-          `}
-          title={isCollapsed ? "Expand" : "Collapse"}
-        >
-          {isCollapsed ? (
-            <ChevronUp className="w-4 h-4 transition-transform -translate-y-2.5 rotate-180" />
-          ) : (
-            <ChevronUp className="w-4 h-4" />
-          )}
-        </button>
       </div>
 
       <div className="text-[10px] text-slate-500 mt-2 px-1 opacity-70">
