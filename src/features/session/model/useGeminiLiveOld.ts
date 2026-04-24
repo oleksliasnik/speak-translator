@@ -116,16 +116,7 @@ export const useGeminiLive = () => {
 
   // Session management
   const sessionPromiseRef = useRef<Promise<any> | null>(null);
-  const sessionRef = useRef<any | null>(null);
   const nextStartTimeRef = useRef<number>(0);
-  const sawSetupCompleteRef = useRef(false);
-  const usedResumptionHandleRef = useRef(false);
-  const resumptionFallbackAttemptedRef = useRef(false);
-  const isSocketOpenRef = useRef(false);
-  const lastModelActivityAtRef = useRef(0);
-  const inputChunkCountRef = useRef(0);
-  const lastInputDebugLogAtRef = useRef(0);
-  const lastSessionHydrateTryAtRef = useRef(0);
 
   // Buffer Accumulation for Recording
   const audioAccumulatorRef = useRef<{
@@ -146,8 +137,7 @@ export const useGeminiLive = () => {
 
   // --- Flush unsaved buffers (reusable helper) ---
   const flushBuffers = useCallback(() => {
-    const { isRecordingEnabled, isUserRecordingEnabled } =
-      useLiveStore.getState();
+    const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
 
     // Clear model response timeout
     if (modelResponseTimeoutRef.current) {
@@ -159,9 +149,7 @@ export const useGeminiLive = () => {
     if (transcriptionBufferRef.current.input.trim()) {
       const msgId = crypto.randomUUID();
       let hasAudio =
-        isRecordingEnabled &&
-        isUserRecordingEnabled &&
-        audioAccumulatorRef.current.input.length > 0;
+        isRecordingEnabled && isUserRecordingEnabled && audioAccumulatorRef.current.input.length > 0;
 
       if (hasAudio) {
         const combined = mergeBuffers(audioAccumulatorRef.current.input);
@@ -273,48 +261,9 @@ export const useGeminiLive = () => {
       audioContextsRef.current.output = null;
     }
 
-    // Close websocket session if still around
-    const sessionPromise = sessionPromiseRef.current;
-    if (sessionPromise) {
-      try {
-        const session = await sessionPromise;
-        sessionRef.current = null;
-        isSocketOpenRef.current = false;
-        if (session && typeof session.close === "function") {
-          session.close();
-        }
-      } catch {
-        // ignore
-      }
-    }
-
     // Reset internal state (buffers are NOT cleared here — use flushBuffers before cleanup)
     sessionPromiseRef.current = null;
-    sessionRef.current = null;
-    isSocketOpenRef.current = false;
     nextStartTimeRef.current = 0;
-  }, []);
-
-  const stopInputPump = useCallback(() => {
-    const processor = resourcesRef.current.scriptProcessor;
-    if (!processor) return;
-    try {
-      processor.onaudioprocess = null;
-      processor.disconnect();
-    } catch {
-      // ignore
-    }
-    resourcesRef.current.scriptProcessor = null;
-  }, []);
-
-  const canSendToSession = useCallback((session: any): boolean => {
-    if (!session) return false;
-    const readyState = session?.conn?.readyState;
-    // In some web SDK builds `conn` is not exposed. In that case we trust `isSocketOpenRef`.
-    if (typeof readyState === "number") {
-      return readyState === 1;
-    }
-    return isSocketOpenRef.current;
   }, []);
 
   const disconnect = useCallback(async () => {
@@ -409,13 +358,6 @@ export const useGeminiLive = () => {
           setStatus(ConnectionStatus.CONNECTING);
         }
         setError(null);
-        sawSetupCompleteRef.current = false;
-        usedResumptionHandleRef.current = false;
-        resumptionFallbackAttemptedRef.current = false;
-        isSocketOpenRef.current = false;
-        sessionRef.current = null;
-        inputChunkCountRef.current = 0;
-        lastInputDebugLogAtRef.current = 0;
 
         // --- Initialize Audio ---
         const inputCtx = new (
@@ -499,6 +441,7 @@ export const useGeminiLive = () => {
           });
         }
         mediaStreamRef.current = stream;
+
         // --- Initialize Gemini ---
         const ai = new GoogleGenAI({ apiKey });
         transcriptionBufferRef.current = { input: "", output: "" };
@@ -506,7 +449,7 @@ export const useGeminiLive = () => {
 
         // Configure session
         const liveConfig: any = {
-          model: "gemini-3.1-flash-live-preview",
+          model: "gemini-2.5-flash-native-audio-preview-12-2025",
           config: {
             responseModalities: [Modality.AUDIO],
             speechConfig: {
@@ -514,21 +457,10 @@ export const useGeminiLive = () => {
                 prebuiltVoiceConfig: { voiceName: voiceName || "Kore" },
               },
             },
-            thinkingConfig: {
-              thinkingLevel: "minimal",
-            },
             systemInstruction: systemInstruction,
             inputAudioTranscription: {},
             outputAudioTranscription: {},
-            realtimeInputConfig: {
-              automaticActivityDetection: {
-                startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
-                endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
-                prefixPaddingMs: 180,
-                silenceDurationMs: 900,
-              },
-            },
-            // tools: [{ googleSearch: {} }],
+            tools: [{ googleSearch: {} }],
           },
         };
 
@@ -538,9 +470,8 @@ export const useGeminiLive = () => {
             "Attempting to resume session with token:",
             resumptionToken,
           );
-          usedResumptionHandleRef.current = true;
-          // Enable session resumption updates; `handle` restores prior state.
-          liveConfig.config.sessionResumption = { handle: resumptionToken };
+          // Add session ID to config for resumption
+          liveConfig.config.session = { id: resumptionToken };
         }
 
         const sessionPromise = ai.live.connect({
@@ -549,7 +480,6 @@ export const useGeminiLive = () => {
             onopen: () => {
               console.log("Gemini Live Session Opened");
               setStatus(ConnectionStatus.CONNECTED);
-              isSocketOpenRef.current = true;
 
               // Reset retry count ONLY after stabilization (e.g. 5 seconds of connection)
               // This prevents infinite loops if connection opens but immediately closes
@@ -575,73 +505,25 @@ export const useGeminiLive = () => {
               source.connect(inputGainNode);
               inputGainNode.connect(inputAnalyser);
 
-              const processor = inputCtx.createScriptProcessor(1024, 1, 1);
+              const processor = inputCtx.createScriptProcessor(4096, 1, 1);
               processor.onaudioprocess = (e) => {
-                // If socket is closing/closed (quota, network, etc), do not keep sending.
-                if (!isSocketOpenRef.current) return;
-
                 const inputData = e.inputBuffer.getChannelData(0);
 
                 // Accumulate raw PCM (convert float32 to int16 for wav saving)
                 // We re-use logic from createBlob but just keep the int16 buffer
                 const l = inputData.length;
                 const int16 = new Int16Array(l);
-                let sumSquares = 0;
                 for (let i = 0; i < l; i++) {
                   const s = Math.max(-1, Math.min(1, inputData[i]));
-                  sumSquares += s * s;
                   int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
                 }
                 const rawBytes = new Uint8Array(int16.buffer);
                 audioAccumulatorRef.current.input.push(rawBytes);
-                inputChunkCountRef.current += 1;
 
                 const pcmBlob = createBlob(inputData);
-                let session = sessionRef.current;
-                if (!session) {
-                  const now = Date.now();
-                  if (now - lastSessionHydrateTryAtRef.current > 1000) {
-                    lastSessionHydrateTryAtRef.current = now;
-                    const pending = sessionPromiseRef.current;
-                    if (pending) {
-                      pending
-                        .then((resolved) => {
-                          if (sessionPromiseRef.current !== pending) return;
-                          sessionRef.current = resolved;
-                        })
-                        .catch(() => {
-                          // ignore
-                        });
-                    }
-                  }
-                  return;
-                }
-
-                if (!canSendToSession(session)) return;
-
-                const now = Date.now();
-                if (
-                  now - lastInputDebugLogAtRef.current >= 1000 &&
-                  inputChunkCountRef.current % 5 === 0
-                ) {
-                  const rms = Math.sqrt(sumSquares / l);
-                  console.log("[LiveDebug] sending audio chunk", {
-                    chunksSent: inputChunkCountRef.current,
-                    samples: l,
-                    rms,
-                    wsReadyState: session?.conn?.readyState ?? "unknown",
-                    isMicOn: settingsRef.current.isMicOn,
-                    audioMode: audioModeRef.current,
-                  });
-                  lastInputDebugLogAtRef.current = now;
-                }
-
-                try {
-                  // Gemini 3.1 Live: use `audio` field (media_chunks is deprecated).
-                  session.sendRealtimeInput({ audio: pcmBlob });
-                } catch {
-                  // Avoid spamming console if socket is already closing/closed
-                }
+                sessionPromise.then((session) =>
+                  session.sendRealtimeInput({ media: pcmBlob }),
+                );
               };
 
               inputGainNode.connect(processor);
@@ -649,128 +531,74 @@ export const useGeminiLive = () => {
               resourcesRef.current.scriptProcessor = processor;
             },
             onmessage: async (message: LiveServerMessage) => {
-              if (message.setupComplete) {
-                sawSetupCompleteRef.current = true;
-                console.log(
-                  "Gemini Live Setup Complete",
-                  message.setupComplete,
-                );
-              }
-
               const content = message.serverContent;
 
-              // Session resumption token (Gemini Live session handle)
+              // Check for session resumption token (newHandle)
               const msgAny = message as any;
-              const newHandle =
-                message.sessionResumptionUpdate?.newHandle ||
-                msgAny.newHandle ||
-                msgAny.session?.newHandle;
-              if (newHandle) {
-                console.log("Received new session handle:", newHandle);
-                setResumptionToken(newHandle);
+              if (msgAny.newHandle) {
+                console.log("Received new session handle:", msgAny.newHandle);
+                setResumptionToken(msgAny.newHandle);
+              } else if (msgAny.session?.newHandle) {
+                console.log(
+                  "Received new session handle (nested):",
+                  msgAny.session.newHandle,
+                );
+                setResumptionToken(msgAny.session.newHandle);
               }
 
               if (message.toolCall) {
                 console.log("Tool call received", message.toolCall);
               }
 
-              // Gemini 3.1 may emit multiple parts (audio + text) per serverContent.
-              const modelParts = content?.modelTurn?.parts;
-              if (Array.isArray(modelParts) && modelParts.length > 0) {
-                for (const part of modelParts as any[]) {
-                  const base64Audio = part?.inlineData?.data;
-                  if (base64Audio) {
-                    lastModelActivityAtRef.current = Date.now();
-                    const rawBytes = decode(base64Audio);
-                    const mimeType =
-                      typeof part?.inlineData?.mimeType === "string"
-                        ? part.inlineData.mimeType.toLowerCase()
-                        : "";
+              const base64Audio =
+                content?.modelTurn?.parts?.[0]?.inlineData?.data;
+              if (base64Audio) {
+                const rawBytes = decode(base64Audio);
 
-                    // Accumulate for saving
-                    audioAccumulatorRef.current.output.push(rawBytes);
+                // Accumulate for saving
+                audioAccumulatorRef.current.output.push(rawBytes);
 
-                    const ctx = audioContextsRef.current.output;
-                    const gainNode = resourcesRef.current.outputGainNode;
+                const ctx = audioContextsRef.current.output;
+                const gainNode = resourcesRef.current.outputGainNode;
 
-                    if (ctx && gainNode) {
-                      try {
-                        let audioBuffer: AudioBuffer;
+                if (ctx && gainNode) {
+                  const audioBuffer = await decodeAudioData(
+                    rawBytes,
+                    ctx,
+                    PCM_SAMPLE_RATE_OUTPUT,
+                    1,
+                  );
 
-                        if (mimeType.includes("audio/pcm")) {
-                          const rateMatch = mimeType.match(/rate=(\d+)/i);
-                          const sampleRateFromMime = rateMatch
-                            ? Number(rateMatch[1])
-                            : PCM_SAMPLE_RATE_OUTPUT;
+                  const currentRate = settingsRef.current.playbackRate;
+                  nextStartTimeRef.current = Math.max(
+                    nextStartTimeRef.current,
+                    ctx.currentTime,
+                  );
 
-                          audioBuffer = await decodeAudioData(
-                            rawBytes,
-                            ctx,
-                            sampleRateFromMime,
-                            1,
-                          );
-                        } else {
-                          const encoded = new Uint8Array(rawBytes).buffer;
-                          audioBuffer = await ctx.decodeAudioData(encoded);
-                        }
+                  const source = ctx.createBufferSource();
+                  source.buffer = audioBuffer;
+                  // source.playbackRate.value = currentRate; // Disabled: we now use system prompt for speed
+                  source.playbackRate.value = 1.0;
 
-                        nextStartTimeRef.current = Math.max(
-                          nextStartTimeRef.current,
-                          ctx.currentTime,
-                        );
+                  source.connect(gainNode);
 
-                        const source = ctx.createBufferSource();
-                        source.buffer = audioBuffer;
-                        source.playbackRate.value = 1.0;
+                  // Add to active sources
+                  activeSourceNodesRef.current.add(source);
 
-                        source.connect(gainNode);
+                  // Remove from active sources when ended
+                  source.onended = () => {
+                    activeSourceNodesRef.current.delete(source);
+                  };
 
-                        // Add to active sources
-                        activeSourceNodesRef.current.add(source);
-
-                        // Remove from active sources when ended
-                        source.onended = () => {
-                          activeSourceNodesRef.current.delete(source);
-                        };
-
-                        source.start(nextStartTimeRef.current);
-                        nextStartTimeRef.current += audioBuffer.duration;
-                      } catch (audioDecodeError) {
-                        console.warn("Failed to decode model audio part", {
-                          mimeType,
-                          byteLength: rawBytes.byteLength,
-                          audioDecodeError,
-                        });
-                      }
-                    }
-                  }
-
-                  // If the model returns text parts (e.g. mixed modality), surface them.
-                  if (
-                    !content?.outputTranscription &&
-                    typeof part?.text === "string" &&
-                    part.text.length > 0
-                  ) {
-                    lastModelActivityAtRef.current = Date.now();
-                    transcriptionBufferRef.current.output += part.text;
-                    setStreamingContent({
-                      role: "model",
-                      text: transcriptionBufferRef.current.output,
-                    });
-                  }
+                  source.start(nextStartTimeRef.current);
+                  // nextStartTimeRef.current += audioBuffer.duration / currentRate;
+                  nextStartTimeRef.current += audioBuffer.duration;
                 }
               }
 
               if (content) {
                 // --- HANDLE USER TRANSCRIPTION ---
                 if (content.inputTranscription) {
-                  console.log("[LiveDebug] inputTranscription", {
-                    chunkLength: content.inputTranscription.text?.length || 0,
-                    textPreview: (content.inputTranscription.text || "").slice(
-                      0,
-                      120,
-                    ),
-                  });
                   transcriptionBufferRef.current.input +=
                     content.inputTranscription.text;
                   setStreamingContent({
@@ -796,14 +624,6 @@ export const useGeminiLive = () => {
 
                 // --- HANDLE MODEL TRANSCRIPTION ---
                 if (content.outputTranscription) {
-                  console.log("[LiveDebug] outputTranscription", {
-                    chunkLength: content.outputTranscription.text?.length || 0,
-                    textPreview: (content.outputTranscription.text || "").slice(
-                      0,
-                      120,
-                    ),
-                  });
-                  lastModelActivityAtRef.current = Date.now();
                   // Model responded — clear silence timeout
                   if (modelResponseTimeoutRef.current) {
                     clearTimeout(modelResponseTimeoutRef.current);
@@ -815,27 +635,19 @@ export const useGeminiLive = () => {
                     transcriptionBufferRef.current.input.trim() &&
                     transcriptionBufferRef.current.output.length === 0
                   ) {
-                    const { isRecordingEnabled, isUserRecordingEnabled } =
-                      useLiveStore.getState();
+                    const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled &&
-                      isUserRecordingEnabled &&
+                      isRecordingEnabled && isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     if (hasAudio) {
                       const combined = mergeBuffers(
                         audioAccumulatorRef.current.input,
                       );
-                      const trimmed = trimSilence(
-                        combined,
-                        PCM_SAMPLE_RATE_INPUT,
-                      );
+                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
                       if (trimmed.length > 0) {
-                        const wavBlob = pcmToWav(
-                          trimmed,
-                          PCM_SAMPLE_RATE_INPUT,
-                        );
+                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
                         saveAudio(msgId, wavBlob);
                       } else {
                         hasAudio = false;
@@ -864,17 +676,13 @@ export const useGeminiLive = () => {
                 }
 
                 if (content.turnComplete) {
-                  console.log("[LiveDebug] turnComplete");
-                  lastModelActivityAtRef.current = Date.now();
-                  const { isRecordingEnabled, isUserRecordingEnabled } =
-                    useLiveStore.getState();
+                  const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
 
                   // --- SAVE REMAINDER USER TURN (if any) ---
                   if (transcriptionBufferRef.current.input.trim()) {
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled &&
-                      isUserRecordingEnabled &&
+                      isRecordingEnabled && isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     // Save Audio
@@ -882,15 +690,9 @@ export const useGeminiLive = () => {
                       const combined = mergeBuffers(
                         audioAccumulatorRef.current.input,
                       );
-                      const trimmed = trimSilence(
-                        combined,
-                        PCM_SAMPLE_RATE_INPUT,
-                      );
+                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
                       if (trimmed.length > 0) {
-                        const wavBlob = pcmToWav(
-                          trimmed,
-                          PCM_SAMPLE_RATE_INPUT,
-                        );
+                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
                         saveAudio(msgId, wavBlob);
                       } else {
                         hasAudio = false;
@@ -954,8 +756,7 @@ export const useGeminiLive = () => {
                   activeSourceNodesRef.current.clear();
 
                   nextStartTimeRef.current = 0;
-                  const { isRecordingEnabled, isUserRecordingEnabled } =
-                    useLiveStore.getState();
+                  const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
 
                   // Even if interrupted, save what we have for MODEL output
                   if (transcriptionBufferRef.current.output.trim()) {
@@ -989,23 +790,16 @@ export const useGeminiLive = () => {
                   if (transcriptionBufferRef.current.input.trim()) {
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled &&
-                      isUserRecordingEnabled &&
+                      isRecordingEnabled && isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     if (hasAudio) {
                       const combined = mergeBuffers(
                         audioAccumulatorRef.current.input,
                       );
-                      const trimmed = trimSilence(
-                        combined,
-                        PCM_SAMPLE_RATE_INPUT,
-                      );
+                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
                       if (trimmed.length > 0) {
-                        const wavBlob = pcmToWav(
-                          trimmed,
-                          PCM_SAMPLE_RATE_INPUT,
-                        );
+                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
                         saveAudio(msgId, wavBlob);
                       } else {
                         hasAudio = false;
@@ -1027,70 +821,8 @@ export const useGeminiLive = () => {
                 }
               }
             },
-            onclose: (e) => {
-              console.log("Gemini Live Session Closed", {
-                code: e?.code,
-                reason: e?.reason,
-                wasClean: e?.wasClean,
-              });
-              isSocketOpenRef.current = false;
-              stopInputPump();
-
-              // Quota / billing issues are not recoverable by reconnecting.
-              // Commonly surfaces as 1011 with a human-readable reason.
-              const reasonText = (e?.reason || "").toLowerCase();
-              if (
-                e?.code === 1011 &&
-                (reasonText.includes("quota") ||
-                  reasonText.includes("billing") ||
-                  reasonText.includes("plan"))
-              ) {
-                setError(e.reason || "Quota exceeded / billing required.");
-                setStatus(ConnectionStatus.ERROR);
-                flushBuffers();
-                cleanupResources(true);
-                return;
-              }
-
-              if (!sawSetupCompleteRef.current) {
-                const closeInfo = `Live closed before setupComplete (code=${e?.code}, reason="${e?.reason || ""}")`;
-                console.warn("[LiveDebug]", closeInfo);
-                setError(closeInfo);
-                setStatus(ConnectionStatus.ERROR);
-                flushBuffers();
-                cleanupResources(true);
-                return;
-              }
-
-              // Invalid realtime input shape / deprecated field.
-              if (e?.code === 1007) {
-                setError(
-                  e.reason ||
-                    "Live protocol error (1007): realtime input format mismatch.",
-                );
-                setStatus(ConnectionStatus.ERROR);
-                flushBuffers();
-                cleanupResources(true);
-                return;
-              }
-
-              // If we closed immediately after trying to resume, assume handle is invalid/expired.
-              if (
-                usedResumptionHandleRef.current &&
-                !sawSetupCompleteRef.current &&
-                !resumptionFallbackAttemptedRef.current
-              ) {
-                console.warn(
-                  "Session closed before setupComplete while resuming; clearing resumption token and retrying once...",
-                );
-                resumptionFallbackAttemptedRef.current = true;
-                setResumptionToken(null);
-                flushBuffers();
-                cleanupResources(true).then(() => {
-                  connect();
-                });
-                return;
-              }
+            onclose: () => {
+              console.log("Gemini Live Session Closed");
 
               // If user manually disconnected, do NOT reconnect
               if (isUserDisconnectRef.current) {
@@ -1118,8 +850,6 @@ export const useGeminiLive = () => {
             },
             onerror: (err) => {
               console.error("Gemini Live Error:", err);
-              isSocketOpenRef.current = false;
-              stopInputPump();
 
               // Check if it's a resumption error (likely expired token)
               const currentToken = useLiveStore.getState().resumptionToken;
@@ -1167,14 +897,6 @@ export const useGeminiLive = () => {
         });
 
         sessionPromiseRef.current = sessionPromise;
-        sessionPromise
-          .then((session) => {
-            if (sessionPromiseRef.current !== sessionPromise) return;
-            sessionRef.current = session;
-          })
-          .catch(() => {
-            // ignore
-          });
 
         resourcesRef.current.analysisInterval = window.setInterval(() => {
           if (
@@ -1244,7 +966,6 @@ export const useGeminiLive = () => {
       disconnect,
       cleanupResources,
       flushBuffers,
-      stopInputPump,
       startNewSession,
       setResumptionToken,
     ],
@@ -1268,33 +989,28 @@ export const useGeminiLive = () => {
 
       sessionPromiseRef.current.then((session) => {
         try {
+          // Cast to any because the type definition might not show 'text' property
+          // but it is supported by the underlying API for low-latency text
           const s = session as any;
-          if (!canSendToSession(s)) return;
-          const sendAt = Date.now();
           s.sendRealtimeInput({ text: text });
-
-          // Compatibility fallback for runtimes where realtime text does not
-          // trigger model turn reliably.
-          setTimeout(() => {
-            if (!canSendToSession(s)) return;
-            if (lastModelActivityAtRef.current >= sendAt) return;
-            if (typeof s.sendClientContent !== "function") return;
-
-            try {
-              s.sendClientContent({
-                turns: [{ role: "user", parts: [{ text }] }],
-                turnComplete: true,
-              });
-            } catch {
-              // ignore
-            }
-          }, 1200);
         } catch (e) {
-          // Avoid spamming console if socket is already closing/closed
+          console.error("Error sending text via sendRealtimeInput:", e);
+
+          // Fallback to old method if failed
+          const turns = [
+            {
+              role: "user",
+              parts: [{ text: text }],
+            },
+          ];
+          const turnComplete = true;
+          if (typeof session.sendClientContent === "function") {
+            session.sendClientContent({ turns, turnComplete });
+          }
         }
       });
     },
-    [addTranscript, canSendToSession],
+    [addTranscript],
   );
 
   // Helper to stop audio manually (e.g. when user types)

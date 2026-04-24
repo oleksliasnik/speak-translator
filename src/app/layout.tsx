@@ -52,7 +52,20 @@ export default function RootLayout({
         {children}
         <script>
           {`if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            window.addEventListener('load', async () => {
+              const isProd = ${JSON.stringify(process.env.NODE_ENV === "production")};
+
+              if (!isProd) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(regs.map((reg) => reg.unregister()));
+                if ('caches' in window) {
+                  const keys = await caches.keys();
+                  await Promise.all(keys.map((key) => caches.delete(key)));
+                }
+                console.log('SW disabled in non-production mode');
+                return;
+              }
+
               navigator.serviceWorker.register('/sw.js')
                 .then(registration => {
                   console.log('SW registered: ', registration);

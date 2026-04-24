@@ -1,9 +1,10 @@
-const CACHE_NAME = 'speak-translator-v1';
+const CACHE_NAME = 'speak-translator-v2';
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon-96x96.png',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
 ];
 
 // Install event - cache resources
@@ -12,7 +13,10 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        return cache.addAll(urlsToCache).catch((err) => {
+          // Avoid crashing SW install if a single URL fails (offline/404/etc).
+          console.warn('Cache addAll failed, continuing without precache:', err);
+        });
       })
   );
 });
