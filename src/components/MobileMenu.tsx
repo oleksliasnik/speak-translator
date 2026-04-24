@@ -8,6 +8,7 @@ import { translations } from "@/shared/lib/translations";
 interface MobileMenuProps {
   audioMode: AudioMode;
   onAudioModeChange: (mode: AudioMode) => void;
+  supportsSystemAudio?: boolean;
   disabled?: boolean;
   isOpen: boolean;
   onToggle: (isOpen: boolean) => void;
@@ -16,6 +17,7 @@ interface MobileMenuProps {
 const MobileMenu: React.FC<MobileMenuProps> = ({
   audioMode,
   onAudioModeChange,
+  supportsSystemAudio,
   disabled,
   isOpen,
   onToggle,
@@ -62,35 +64,36 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         <>
           <div className="fixed inset-0 z-10" onClick={() => onToggle(false)} />
           <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-20 overflow-hidden">
-            {/* Audio Source Section */}
-            <div className="border-b border-slate-700">
-              <div className="px-3 py-2 text-xs text-slate-500 font-bold uppercase tracking-wider">
-                {t.audioSource || "Audio Source"}
-              </div>
-              <div className="p-2">
-                <div className="flex flex-col items-start gap-1 bg-gray-800/50 rounded-lg p-1">
-                  {audioButtons.map(({ mode, icon, title }) => (
-                    <button
-                      key={mode}
-                      onClick={() => {
-                        onAudioModeChange(mode);
-                        onToggle(false);
-                      }}
-                      disabled={disabled}
-                      className={`flex-1 flex gap-2 items-center justify-center p-2 rounded-md transition-all ${
-                        audioMode === mode
-                          ? "bg-blue-600/30 text-white shadow-sm"
-                          : "text-gray-400 hover:text-white hover:bg-white/5"
-                      }`}
-                      title={title}
-                    >
-                      {icon}
-                      <span className="text-xs">{title}</span>
-                    </button>
-                  ))}
+            {supportsSystemAudio !== false && (
+              <div className="border-b border-slate-700">
+                <div className="px-3 py-2 text-xs text-slate-500 font-bold uppercase tracking-wider">
+                  {t.audioSource || "Audio Source"}
+                </div>
+                <div className="p-2">
+                  <div className="flex flex-col items-start gap-1 bg-gray-800/50 rounded-lg p-1">
+                    {audioButtons.map(({ mode, icon, title }) => (
+                      <button
+                        key={mode}
+                        onClick={() => {
+                          onAudioModeChange(mode);
+                          onToggle(false);
+                        }}
+                        disabled={disabled}
+                        className={`flex-1 w-full flex gap-2 items-center justify-start p-2 rounded-md transition-all ${
+                          audioMode === mode
+                            ? "bg-blue-600/30 text-white shadow-sm"
+                            : "text-gray-400 hover:text-white hover:bg-white/5"
+                        }`}
+                        title={title}
+                      >
+                        {icon}
+                        <span className="text-xs">{title}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Playback Speed Section */}
             <div>

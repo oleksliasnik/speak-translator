@@ -17,6 +17,7 @@ interface TopBarProps {
   onReconnect: (callback: () => void) => void;
   audioMode: AudioMode;
   onAudioModeChange: (mode: AudioMode) => void;
+  supportsSystemAudio?: boolean;
   disabled?: boolean;
   onOpacityChange: (opacity: number) => void;
 }
@@ -27,6 +28,7 @@ const TopBar: React.FC<TopBarProps> = ({
   onReconnect,
   audioMode,
   onAudioModeChange,
+  supportsSystemAudio,
   disabled,
   onOpacityChange,
 }) => {
@@ -86,19 +88,22 @@ const TopBar: React.FC<TopBarProps> = ({
             isOpen={activeDropdown === "speed"}
             onToggle={(isOpen) => setActiveDropdown(isOpen ? "speed" : null)}
           />
-          <div className="ml-2">
-            <AudioSourceSelector
-              mode={audioMode}
-              onChange={onAudioModeChange}
-              disabled={disabled}
-            />
-          </div>
+          {supportsSystemAudio !== false && (
+            <div className="ml-2">
+              <AudioSourceSelector
+                mode={audioMode}
+                onChange={onAudioModeChange}
+                disabled={disabled}
+              />
+            </div>
+          )}
         </div>
 
         {/* Mobile: Show menu button */}
         <MobileMenu
           audioMode={audioMode}
           onAudioModeChange={onAudioModeChange}
+          supportsSystemAudio={supportsSystemAudio}
           disabled={disabled}
           isOpen={activeDropdown === "mobile"}
           onToggle={(isOpen) => setActiveDropdown(isOpen ? "mobile" : null)}

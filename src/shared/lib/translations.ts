@@ -114,7 +114,10 @@ export const translations: Record<string, any> = {
     dataManagementDesc:
       "Коли увімкнено, використовуйте значки кошика в чатах, щоб вибірково звільнити місце, не втрачаючи історію розмов.",
     confirmDeleteMessage: "Ви впевнені, що хочете видалити це повідомлення?",
-    confirmDeleteAudio: "Ви впевнені, що хочете видалити аудіо для цього повідомлення?",
+    confirmDeleteAudio:
+      "Ви впевнені, що хочете видалити аудіо для цього повідомлення?",
+    systemNotSupported:
+      "Захоплення системного звуку не підтримується на цьому пристрої",
   },
   en: {
     menu: "Menu",
@@ -222,6 +225,7 @@ export const translations: Record<string, any> = {
     confirmDeleteMessage: "Are you sure you want to delete this message?",
     confirmDeleteAudio:
       "Are you sure you want to delete the audio for this message?",
+    systemNotSupported: "System audio capture is not supported on this device",
   },
   pl: {
     menu: "Menu",
@@ -369,7 +373,8 @@ export const translations: Record<string, any> = {
     allowAudioDeletion: "Löschen von Audioaufnahmen zulassen",
     dataManagementDesc:
       "Wenn aktiviert, finden Sie die Papierkorb-Symbole in Ihren Chats, um selektiv Platz freizugeben, ohne Ihren Gesprächsverlauf zu verlieren.",
-    confirmDeleteMessage: "Sind Sie sicher, dass Sie diese Nachricht löschen möchten?",
+    confirmDeleteMessage:
+      "Sind Sie sicher, dass Sie diese Nachricht löschen möchten?",
     confirmDeleteAudio:
       "Sind Sie sicher, dass Sie das Audio für diese Nachricht löschen möchten?",
   },
@@ -733,7 +738,7 @@ export const translations: Record<string, any> = {
     apiKeyFreeTry: "Генеративный ИИ можно попробовать бесплатно с Gemini.",
     systemInstruction: "Пользовательские инструкции ИИ",
     systemInstructionPlaceholder:
-      "Додайте користувацькі інструкції та контекст для більш точної поведінки AI...",
+      "Добавьте пользовательские инструкции и контекст для более точного поведения ИИ....",
     currentMode: "Текущий режим",
     clearAll: "Очистить всё",
 
@@ -770,5 +775,7 @@ export const translations: Record<string, any> = {
     confirmDeleteMessage: "Вы уверены, что хотите удалить это сообщение?",
     confirmDeleteAudio:
       "Вы уверены, что хотите удалить аудио для этого сообщения?",
+    systemNotSupported:
+      "Захват системного звука не поддерживается на этом устройстве",
   },
 };

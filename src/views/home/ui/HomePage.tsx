@@ -24,6 +24,7 @@ export default function HomePage() {
     interfaceLanguage,
     startNewSession,
     isMicOn,
+    setError,
   } = useLiveStore();
 
   const {
@@ -38,7 +39,7 @@ export default function HomePage() {
 
   // Audio System Hooks
   const [audioMode, setAudioMode] = useState<AudioMode>("microphone");
-  const { startCapture, stopCapture } = useSystemAudio();
+  const { startCapture, stopCapture, supportsSystemAudio } = useSystemAudio();
 
   // Sync Audio Mode with Gemini Hook for suppression
   React.useEffect(() => {
@@ -69,8 +70,14 @@ export default function HomePage() {
           console.error("Failed to acquire audio stream");
           // Optionally show toast error here
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error starting connection:", err);
+        setError(err.message || "Не вдалося отримати доступ до мікрофона.");
+        
+        // Auto-clear error after 5 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
       }
     }
   };
@@ -134,6 +141,7 @@ export default function HomePage() {
         onReconnect={handleReconnect}
         audioMode={audioMode}
         onAudioModeChange={setAudioMode}
+        supportsSystemAudio={supportsSystemAudio}
         disabled={isConnected || isConnecting}
         onOpacityChange={setBackgroundOpacity}
       />
