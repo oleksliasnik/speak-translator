@@ -7,6 +7,15 @@ export const useSystemAudio = () => {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<AudioMode>("microphone");
   const [isCapturing, setIsCapturing] = useState(false);
+  const [supportsSystemAudio, setSupportsSystemAudio] = useState(true); // За замовчуванням true, щоб уникнути блимання на десктопі
+
+  useEffect(() => {
+    const isSupported =
+      typeof navigator !== "undefined" &&
+      !!navigator.mediaDevices &&
+      !!navigator.mediaDevices.getDisplayMedia;
+    setSupportsSystemAudio(isSupported);
+  }, []);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodesRef = useRef<MediaStreamAudioSourceNode[]>([]);
@@ -40,6 +49,13 @@ export const useSystemAudio = () => {
 
     try {
       let finalStream: MediaStream;
+
+      // Ensure mediaDevices and getUserMedia are supported (HTTPS requirement)
+      if (!navigator?.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error(
+          "Microphone is unavailable. Please make sure you are using a secure HTTPS connection (orlocalhost).",
+        );
+      }
 
       // 1. Microphone Only
       if (selectedMode === "microphone") {
@@ -94,7 +110,7 @@ export const useSystemAudio = () => {
     } catch (err: any) {
       console.error("Error starting audio capture:", err);
       setError(err.message || "Failed to start audio capture");
-      return null;
+      throw err; // Rethrow to let the UI (HomePage) catch and display it
     }
   };
 
@@ -105,5 +121,6 @@ export const useSystemAudio = () => {
     startCapture,
     stopCapture,
     mode,
+    supportsSystemAudio,
   };
 };
