@@ -6,6 +6,7 @@ import { translations } from "@/shared/lib/translations";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Loader2 } from "lucide-react";
+import "./ChatList.css";
 
 interface ChatListProps {
   onDoubleClick?: () => void;
@@ -81,7 +82,16 @@ const ChatList: React.FC<ChatListProps> = ({ onDoubleClick }) => {
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {streamingContent.text}
                 </ReactMarkdown>
-                <Loader2 className="w-3 h-3 ml-1 animate-spin inline-block align-middle opacity-50" />
+                {streamingContent.role === "user" &&
+                streamingContent.text === "" ? (
+                  <span className="typing-dots inline-block ml-1 min-h-6">
+                    <span>.</span>
+                    <span>.</span>
+                    <span>.</span>
+                  </span>
+                ) : (
+                  <Loader2 className="w-3 h-3 ml-1 animate-spin inline-block align-middle opacity-50" />
+                )}
               </div>
             </div>
           )}

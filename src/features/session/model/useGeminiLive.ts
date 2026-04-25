@@ -144,6 +144,13 @@ export const useGeminiLive = () => {
   // Flag to track if the disconnection was initiated by the user
   const isUserDisconnectRef = useRef(false);
 
+  // Timeout for auto-hiding empty placeholder if model ignores noise
+  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Flag to track if the current turn has been aborted to ignore trailing packets
+  const isTurnAbortedRef = useRef(false);
+  const lastManualInterruptAtRef = useRef(0);
+
   // --- Flush unsaved buffers (reusable helper) ---
   const flushBuffers = useCallback(() => {
     const { isRecordingEnabled, isUserRecordingEnabled } =
@@ -525,7 +532,7 @@ export const useGeminiLive = () => {
                 startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
                 endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
                 prefixPaddingMs: 180,
-                silenceDurationMs: 900,
+                silenceDurationMs: 2000,
               },
             },
             // tools: [{ googleSearch: {} }],
@@ -575,7 +582,7 @@ export const useGeminiLive = () => {
               source.connect(inputGainNode);
               inputGainNode.connect(inputAnalyser);
 
-              const processor = inputCtx.createScriptProcessor(1024, 1, 1);
+              const processor = inputCtx.createScriptProcessor(4096, 1, 1);
               processor.onaudioprocess = (e) => {
                 // If socket is closing/closed (quota, network, etc), do not keep sending.
                 if (!isSocketOpenRef.current) return;
@@ -595,6 +602,42 @@ export const useGeminiLive = () => {
                 const rawBytes = new Uint8Array(int16.buffer);
                 audioAccumulatorRef.current.input.push(rawBytes);
                 inputChunkCountRef.current += 1;
+
+                // --- CLIENT-SIDE VAD (Streaming UI Feedback) ---
+                const rms = Math.sqrt(sumSquares / l);
+                if (rms > 0.012 && settingsRef.current.isMicOn) {
+                  // If noise/speech detected, clear silence hide timer
+                  // Don't reset if we just manually interrupted (2s cooldown)
+                  if (Date.now() - lastManualInterruptAtRef.current > 2000) {
+                    isTurnAbortedRef.current = false;
+                  }
+
+                  if (silenceTimeoutRef.current) {
+                    clearTimeout(silenceTimeoutRef.current);
+                    silenceTimeoutRef.current = null;
+                  }
+
+                  // If user is speaking but no text yet, show placeholder to activate bubble
+                  if (!transcriptionBufferRef.current.input) {
+                    setStreamingContent({
+                      role: "user",
+                      text: "",
+                    });
+                  }
+                } else {
+                  // If silence and we have an empty user bubble, start a timer to hide it
+                  const currentStreaming = useLiveStore.getState().streamingContent;
+                  if (
+                    currentStreaming?.role === "user" &&
+                    currentStreaming?.text === "" &&
+                    !silenceTimeoutRef.current
+                  ) {
+                    silenceTimeoutRef.current = setTimeout(() => {
+                      setStreamingContent(null);
+                      silenceTimeoutRef.current = null;
+                    }, 2500);
+                  }
+                }
 
                 const pcmBlob = createBlob(inputData);
                 let session = sessionRef.current;
@@ -625,14 +668,14 @@ export const useGeminiLive = () => {
                   inputChunkCountRef.current % 5 === 0
                 ) {
                   const rms = Math.sqrt(sumSquares / l);
-                  console.log("[LiveDebug] sending audio chunk", {
-                    chunksSent: inputChunkCountRef.current,
-                    samples: l,
-                    rms,
-                    wsReadyState: session?.conn?.readyState ?? "unknown",
-                    isMicOn: settingsRef.current.isMicOn,
-                    audioMode: audioModeRef.current,
-                  });
+                  // console.log("[LiveDebug] sending audio chunk", {
+                  //   chunksSent: inputChunkCountRef.current,
+                  //   samples: l,
+                  //   rms,
+                  //   wsReadyState: session?.conn?.readyState ?? "unknown",
+                  //   isMicOn: settingsRef.current.isMicOn,
+                  //   audioMode: audioModeRef.current,
+                  // });
                   lastInputDebugLogAtRef.current = now;
                 }
 
@@ -666,7 +709,7 @@ export const useGeminiLive = () => {
                 msgAny.newHandle ||
                 msgAny.session?.newHandle;
               if (newHandle) {
-                console.log("Received new session handle:", newHandle);
+                // console.log("Received new session handle:", newHandle);
                 setResumptionToken(newHandle);
               }
 
@@ -674,103 +717,133 @@ export const useGeminiLive = () => {
                 console.log("Tool call received", message.toolCall);
               }
 
-              // Gemini 3.1 may emit multiple parts (audio + text) per serverContent.
-              const modelParts = content?.modelTurn?.parts;
-              if (Array.isArray(modelParts) && modelParts.length > 0) {
-                for (const part of modelParts as any[]) {
-                  const base64Audio = part?.inlineData?.data;
-                  if (base64Audio) {
-                    lastModelActivityAtRef.current = Date.now();
-                    const rawBytes = decode(base64Audio);
-                    const mimeType =
-                      typeof part?.inlineData?.mimeType === "string"
-                        ? part.inlineData.mimeType.toLowerCase()
-                        : "";
+              if (content) {
+                // --- 1. HIGHEST PRIORITY: Check for Interruption Signal ---
+                if (content.interrupted) {
+                  console.log("Model interrupted (server-side)");
+                  // STOP ALL CURRENT AUDIO immediately
+                  activeSourceNodesRef.current.forEach((node) => {
+                    try {
+                      node.stop();
+                    } catch (e) {}
+                  });
+                  activeSourceNodesRef.current.clear();
+                  nextStartTimeRef.current = 0;
 
-                    // Accumulate for saving
-                    audioAccumulatorRef.current.output.push(rawBytes);
+                  // Flush what we have and LOCK the model output
+                  flushBuffers();
+                  isTurnAbortedRef.current = true;
+                }
 
-                    const ctx = audioContextsRef.current.output;
-                    const gainNode = resourcesRef.current.outputGainNode;
+                // --- 2. MODEL TURN GUARD ---
+                // If we are in aborted state, skip all model output until next user action.
+                // We reset the guard if we see a model turn and we have fresh user input waiting.
+                const isModelOutput = !!content.modelTurn || !!content.outputTranscription;
+                if (isTurnAbortedRef.current && isModelOutput) {
+                  return;
+                }
 
-                    if (ctx && gainNode) {
-                      try {
-                        let audioBuffer: AudioBuffer;
+                // Gemini 3.1 may emit multiple parts (audio + text) per serverContent.
+                const modelParts = content?.modelTurn?.parts;
+                if (
+                  Array.isArray(modelParts) &&
+                  modelParts.length > 0 &&
+                  !isTurnAbortedRef.current
+                ) {
+                  for (const part of modelParts as any[]) {
+                    const base64Audio = part?.inlineData?.data;
+                    if (base64Audio) {
+                      lastModelActivityAtRef.current = Date.now();
+                      const rawBytes = decode(base64Audio);
+                      const mimeType =
+                        typeof part?.inlineData?.mimeType === "string"
+                          ? part.inlineData.mimeType.toLowerCase()
+                          : "";
 
-                        if (mimeType.includes("audio/pcm")) {
-                          const rateMatch = mimeType.match(/rate=(\d+)/i);
-                          const sampleRateFromMime = rateMatch
-                            ? Number(rateMatch[1])
-                            : PCM_SAMPLE_RATE_OUTPUT;
+                      // Accumulate for saving
+                      audioAccumulatorRef.current.output.push(rawBytes);
 
-                          audioBuffer = await decodeAudioData(
-                            rawBytes,
-                            ctx,
-                            sampleRateFromMime,
-                            1,
+                      const ctx = audioContextsRef.current.output;
+                      const gainNode = resourcesRef.current.outputGainNode;
+
+                      if (ctx && gainNode) {
+                        try {
+                          let audioBuffer: AudioBuffer;
+
+                          if (mimeType.includes("audio/pcm")) {
+                            const rateMatch = mimeType.match(/rate=(\d+)/i);
+                            const sampleRateFromMime = rateMatch
+                              ? Number(rateMatch[1])
+                              : PCM_SAMPLE_RATE_OUTPUT;
+
+                            audioBuffer = await decodeAudioData(
+                              rawBytes,
+                              ctx,
+                              sampleRateFromMime,
+                              1,
+                            );
+                          } else {
+                            const encoded = new Uint8Array(rawBytes).buffer;
+                            audioBuffer = await ctx.decodeAudioData(encoded);
+                          }
+
+                          // CRITICAL: If we were interrupted while decoding, discard this buffer
+                          if (isTurnAbortedRef.current) return;
+
+                          nextStartTimeRef.current = Math.max(
+                            nextStartTimeRef.current,
+                            ctx.currentTime,
                           );
-                        } else {
-                          const encoded = new Uint8Array(rawBytes).buffer;
-                          audioBuffer = await ctx.decodeAudioData(encoded);
+
+                          const source = ctx.createBufferSource();
+                          source.buffer = audioBuffer;
+                          source.playbackRate.value = 1.0;
+
+                          source.connect(gainNode);
+
+                          // Add to active sources
+                          activeSourceNodesRef.current.add(source);
+
+                          // Remove from active sources when ended
+                          source.onended = () => {
+                            activeSourceNodesRef.current.delete(source);
+                          };
+
+                          source.start(nextStartTimeRef.current);
+                          nextStartTimeRef.current += audioBuffer.duration;
+                        } catch (audioDecodeError) {
+                          console.warn("Failed to decode model audio part", {
+                            mimeType,
+                            byteLength: rawBytes.byteLength,
+                            audioDecodeError,
+                          });
                         }
-
-                        nextStartTimeRef.current = Math.max(
-                          nextStartTimeRef.current,
-                          ctx.currentTime,
-                        );
-
-                        const source = ctx.createBufferSource();
-                        source.buffer = audioBuffer;
-                        source.playbackRate.value = 1.0;
-
-                        source.connect(gainNode);
-
-                        // Add to active sources
-                        activeSourceNodesRef.current.add(source);
-
-                        // Remove from active sources when ended
-                        source.onended = () => {
-                          activeSourceNodesRef.current.delete(source);
-                        };
-
-                        source.start(nextStartTimeRef.current);
-                        nextStartTimeRef.current += audioBuffer.duration;
-                      } catch (audioDecodeError) {
-                        console.warn("Failed to decode model audio part", {
-                          mimeType,
-                          byteLength: rawBytes.byteLength,
-                          audioDecodeError,
-                        });
                       }
                     }
-                  }
 
-                  // If the model returns text parts (e.g. mixed modality), surface them.
-                  if (
-                    !content?.outputTranscription &&
-                    typeof part?.text === "string" &&
-                    part.text.length > 0
-                  ) {
-                    lastModelActivityAtRef.current = Date.now();
-                    transcriptionBufferRef.current.output += part.text;
-                    setStreamingContent({
-                      role: "model",
-                      text: transcriptionBufferRef.current.output,
-                    });
+                    // If the model returns text parts (e.g. mixed modality), surface them.
+                    if (
+                      !content?.outputTranscription &&
+                      typeof part?.text === "string" &&
+                      part.text.length > 0
+                    ) {
+                      lastModelActivityAtRef.current = Date.now();
+                      transcriptionBufferRef.current.output += part.text;
+                      setStreamingContent({
+                        role: "model",
+                        text: transcriptionBufferRef.current.output,
+                      });
+                    }
                   }
                 }
-              }
 
-              if (content) {
                 // --- HANDLE USER TRANSCRIPTION ---
                 if (content.inputTranscription) {
-                  console.log("[LiveDebug] inputTranscription", {
-                    chunkLength: content.inputTranscription.text?.length || 0,
-                    textPreview: (content.inputTranscription.text || "").slice(
-                      0,
-                      120,
-                    ),
-                  });
+                  // Model confirmed speech, clear auto-hide timer
+                  if (silenceTimeoutRef.current) {
+                    clearTimeout(silenceTimeoutRef.current);
+                    silenceTimeoutRef.current = null;
+                  }
                   transcriptionBufferRef.current.input +=
                     content.inputTranscription.text;
                   setStreamingContent({
@@ -795,14 +868,7 @@ export const useGeminiLive = () => {
                 }
 
                 // --- HANDLE MODEL TRANSCRIPTION ---
-                if (content.outputTranscription) {
-                  console.log("[LiveDebug] outputTranscription", {
-                    chunkLength: content.outputTranscription.text?.length || 0,
-                    textPreview: (content.outputTranscription.text || "").slice(
-                      0,
-                      120,
-                    ),
-                  });
+                if (content.outputTranscription && !isTurnAbortedRef.current) {
                   lastModelActivityAtRef.current = Date.now();
                   // Model responded — clear silence timeout
                   if (modelResponseTimeoutRef.current) {
@@ -907,7 +973,7 @@ export const useGeminiLive = () => {
                   }
 
                   // --- SAVE MODEL TURN ---
-                  if (transcriptionBufferRef.current.output.trim()) {
+                  if (transcriptionBufferRef.current.output.trim() && !isTurnAbortedRef.current) {
                     const msgId = crypto.randomUUID();
                     const hasAudio =
                       isRecordingEnabled &&
@@ -935,92 +1001,6 @@ export const useGeminiLive = () => {
                   }
 
                   // Reset Buffers
-                  transcriptionBufferRef.current = { input: "", output: "" };
-                  audioAccumulatorRef.current = { input: [], output: [] };
-                  setStreamingContent(null);
-                }
-
-                if (content.interrupted) {
-                  console.log("Model interrupted");
-
-                  // STOP ALL CURRENT AUDIO immediately
-                  activeSourceNodesRef.current.forEach((node) => {
-                    try {
-                      node.stop();
-                    } catch (e) {
-                      // Ignore errors if already stopped
-                    }
-                  });
-                  activeSourceNodesRef.current.clear();
-
-                  nextStartTimeRef.current = 0;
-                  const { isRecordingEnabled, isUserRecordingEnabled } =
-                    useLiveStore.getState();
-
-                  // Even if interrupted, save what we have for MODEL output
-                  if (transcriptionBufferRef.current.output.trim()) {
-                    const msgId = crypto.randomUUID();
-                    const hasAudio =
-                      isRecordingEnabled &&
-                      audioAccumulatorRef.current.output.length > 0;
-
-                    if (hasAudio) {
-                      const combined = mergeBuffers(
-                        audioAccumulatorRef.current.output,
-                      );
-                      const wavBlob = pcmToWav(
-                        combined,
-                        PCM_SAMPLE_RATE_OUTPUT,
-                      );
-                      saveAudio(msgId, wavBlob);
-                    }
-                    addTranscript({
-                      id: msgId,
-                      role: "model",
-                      text:
-                        transcriptionBufferRef.current.output.trim() +
-                        " [Interrupted]",
-                      timestamp: Date.now(),
-                      hasAudio: hasAudio,
-                    });
-                  }
-
-                  // If we also had pending user input during interruption (rare but possible)
-                  if (transcriptionBufferRef.current.input.trim()) {
-                    const msgId = crypto.randomUUID();
-                    let hasAudio =
-                      isRecordingEnabled &&
-                      isUserRecordingEnabled &&
-                      audioAccumulatorRef.current.input.length > 0;
-
-                    if (hasAudio) {
-                      const combined = mergeBuffers(
-                        audioAccumulatorRef.current.input,
-                      );
-                      const trimmed = trimSilence(
-                        combined,
-                        PCM_SAMPLE_RATE_INPUT,
-                      );
-                      if (trimmed.length > 0) {
-                        const wavBlob = pcmToWav(
-                          trimmed,
-                          PCM_SAMPLE_RATE_INPUT,
-                        );
-                        saveAudio(msgId, wavBlob);
-                      } else {
-                        hasAudio = false;
-                      }
-                    }
-
-                    addTranscript({
-                      id: msgId,
-                      role: "user",
-                      text: transcriptionBufferRef.current.input.trim(),
-                      timestamp: Date.now(),
-                      hasAudio: hasAudio,
-                    });
-                  }
-
                   transcriptionBufferRef.current = { input: "", output: "" };
                   audioAccumulatorRef.current = { input: [], output: [] };
                   setStreamingContent(null);
@@ -1314,6 +1294,19 @@ export const useGeminiLive = () => {
   const sendTextMessageWithInterrupt = useCallback(
     (text: string) => {
       stopAudio();
+      isTurnAbortedRef.current = false;
+
+      // Restore gain correctly based on mode
+      if (resourcesRef.current.outputGainNode) {
+        const isSystemOnly =
+          audioModeRef.current === "system" || audioModeRef.current === "both";
+        const targetGain = isSystemOnly ? 0 : settingsRef.current.outputGain;
+
+        resourcesRef.current.outputGainNode.gain.setValueAtTime(
+          targetGain,
+          audioContextsRef.current.output?.currentTime || 0,
+        );
+      }
 
       // Flush pending AI response to maintain correct message ordering
       flushBuffers();
@@ -1366,26 +1359,61 @@ export const useGeminiLive = () => {
 
   // API to interrupt currently streaming AI response manually
   const interrupt = useCallback(() => {
-    stopAudio();
-    if (!sessionPromiseRef.current) return;
-
-    sessionPromiseRef.current.then((session) => {
+    lastManualInterruptAtRef.current = Date.now();
+    
+    // 1. Немедленно останавливаем все играющие аудио-ноды и глушим звук
+    activeSourceNodesRef.current.forEach((node) => {
       try {
-        const s = session as any;
-        if (typeof s.sendClientContent === "function") {
-          // Send a turnComplete signal to interrupt the model
-          s.sendClientContent({ turnComplete: true });
-        } else if (typeof s.send === "function") {
-          s.send({ clientContent: { turnComplete: true } });
-        }
+        node.stop();
       } catch (e) {
-        console.error("Error sending interrupt signal:", e);
+        /* ignore */
       }
     });
+    activeSourceNodesRef.current.clear();
 
-    // Optionally flag state so we ignore any trailing audio chunks that might arrive before the server completely stops
-    // But sending turnComplete: true usually aborts generation immediately on the server.
-  }, [stopAudio]);
+    if (resourcesRef.current.outputGainNode) {
+      resourcesRef.current.outputGainNode.gain.setValueAtTime(
+        0,
+        audioContextsRef.current.output?.currentTime || 0,
+      );
+    }
+
+    // 2. Сбрасываем время следующего старта, чтобы новые чанки не выстраивались в старую очередь
+    if (audioContextsRef.current.output) {
+      nextStartTimeRef.current = audioContextsRef.current.output.currentTime;
+    }
+
+    // 4. Сохраняем то, что модель успела сказать до прерывания
+    // ВАЖНО: flushBuffers сбрасывает флаг в false, поэтому вызываем его ДО установки флага в true
+    flushBuffers();
+
+    // 5. Ставим флаг блокировки входящих пакетов
+    isTurnAbortedRef.current = true;
+
+    // 6. ЯВНО сообщаем серверу остановиться, забирая turn (очередь) себе
+    if (sessionPromiseRef.current) {
+      sessionPromiseRef.current.then((session) => {
+        try {
+          const s = session as any;
+          if (typeof s.send === "function") {
+            s.send({
+              clientContent: {
+                turns: [{ role: "user", parts: [] }],
+                turnComplete: true, // Сигнал модели прервать генерацию
+              },
+            });
+          } else if (typeof s.sendClientContent === "function") {
+            s.sendClientContent({
+              turns: [{ role: "user", parts: [] }],
+              turnComplete: true,
+            });
+          }
+        } catch (e) {
+          console.error("Failed to send interrupt signal to server", e);
+        }
+      });
+    }
+  }, [flushBuffers]);
 
   return {
     connect,
