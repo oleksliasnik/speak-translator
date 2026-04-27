@@ -35,8 +35,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       {/* Modal Card */}
       <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
         <div className="p-5 text-center">
-          <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
-            <AlertTriangle className="w-6 h-6 text-red-500" />
+          <div className="w-12 h-12 bg-bslue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+            <AlertTriangle className="w-6 h-6 text-blue-500" />
           </div>
 
           <h3 className="text-lg font-bold text-white mb-2">
@@ -59,7 +59,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 onConfirm();
                 onClose();
               }}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
             >
               {t.delete}
             </button>

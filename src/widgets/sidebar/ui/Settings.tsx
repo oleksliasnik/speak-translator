@@ -6,6 +6,7 @@ import { translations } from "@/shared/lib/translations";
 import InterfaceLanguageSettings from "@/entities/settings/ui/InterfaceLanguageSettings";
 import ApiKeySettings from "@/entities/settings/ui/ApiKeySettings";
 import VoiceSettings from "@/entities/settings/ui/VoiceSettings";
+import GeminiModelSettings from "@/entities/settings/ui/GeminiModelSettings";
 import VolumeControls from "@/entities/chat/ui/VolumeControls";
 
 interface SettingsProps {
@@ -40,8 +41,9 @@ const Settings: React.FC<SettingsProps> = ({
         )}
         <div className="overflow-hidden bg-slate-950/50">
           <div className="max-h-[60vh] overflow-y-auto custom-scrollbar shadow-inner">
-            <InterfaceLanguageSettings />
+            <GeminiModelSettings />
             <VoiceSettings onVoiceChange={onVoiceChange} />
+            <InterfaceLanguageSettings />
             <ApiKeySettings />
             <VolumeControls />
           </div>

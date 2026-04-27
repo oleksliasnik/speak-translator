@@ -9,8 +9,13 @@ import {
   deleteMessageFromSession,
   deleteAudioFromMessage,
 } from "@/shared/lib/db";
- 
-export type PlaybackSpeed = "slow" | "very_slow" | "normal" | "fast" | "very_fast";
+
+export type PlaybackSpeed =
+  | "slow"
+  | "very_slow"
+  | "normal"
+  | "fast"
+  | "very_fast";
 
 interface LiveStore {
   status: ConnectionStatus;
@@ -38,6 +43,8 @@ interface LiveStore {
   resumptionToken: string | null; // For fast session resumption
   fontSize: number; // Font size for messages (0.8 to 1.5)
   promptProfile: string;
+  thoughtSignature: string | null;
+  geminiModel: "live" | "native";
 
   // Data
   currentSessionId: string | null;
@@ -76,6 +83,8 @@ interface LiveStore {
   setResumptionToken: (token: string | null) => void;
   setFontSize: (size: number) => void;
   setPromptProfile: (profile: string) => void;
+  setThoughtSignature: (token: string | null) => void;
+  setGeminiModel: (model: "live" | "native") => void;
 
   startNewSession: () => void;
   loadSession: (sessionId: string) => Promise<void>;
@@ -124,6 +133,8 @@ export const useLiveStore = create<LiveStore>()(
       resumptionToken: null,
       fontSize: 1.0,
       promptProfile: "default",
+      thoughtSignature: null,
+      geminiModel: "live",
 
       currentSessionId: null,
       transcripts: [],
@@ -173,6 +184,8 @@ export const useLiveStore = create<LiveStore>()(
           customSystemInstruction:
             state.customInstructions[promptProfile] || "",
         })),
+      setThoughtSignature: (thoughtSignature) => set({ thoughtSignature }),
+      setGeminiModel: (geminiModel) => set({ geminiModel }),
 
       startNewSession: () => {
         set({
@@ -181,6 +194,7 @@ export const useLiveStore = create<LiveStore>()(
           streamingContent: null,
           isRecordingEnabled: false, // Force recording off for new session
           resumptionToken: null, // Clear resumption token for fresh start
+          thoughtSignature: null, // Clear thought signature for fresh start
         });
       },
 
@@ -195,6 +209,7 @@ export const useLiveStore = create<LiveStore>()(
             voiceName: session.voiceName || get().voiceName, // Restore voice if exists, else keep current
             isRecordingEnabled: false, // Force recording off when loading old session
             resumptionToken: null, // Loading old session clears resumption token
+            thoughtSignature: null, // Loading old session clears thought signature
           });
         }
       },
@@ -327,6 +342,7 @@ export const useLiveStore = create<LiveStore>()(
         promptProfile: state.promptProfile,
         isMessageDeletionEnabled: state.isMessageDeletionEnabled,
         isAudioDeletionEnabled: state.isAudioDeletionEnabled,
+        geminiModel: state.geminiModel,
       }),
     },
   ),
