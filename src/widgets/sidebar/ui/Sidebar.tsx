@@ -25,7 +25,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const { interfaceLanguage } = useLiveStore();
   const t = translations[interfaceLanguage] || translations["uk"];
 
-
   return (
     <>
       {/* Backdrop */}
@@ -65,7 +64,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <PromptProfileSelector />
-
 
         <CustomInstructionSettings />
 

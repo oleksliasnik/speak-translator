@@ -33,8 +33,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       <div className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-6">
           <div className="flex items-start gap-4 mb-4">
-            <div className="p-2 bg-red-500/10 rounded-full shrink-0">
-              <AlertCircle className="w-6 h-6 text-red-700" />
+            <div className="p-2 bg-blue-500/10 rounded-full shrink-0">
+              <AlertCircle className="w-6 h-6 text-blue-700" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-100">{title}</h3>
@@ -54,7 +54,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 onConfirm();
                 onClose();
               }}
-              className="flex-1 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-700 text-white text-sm font-medium transition-colors shadow-lg shadow-red-600/20"
+              className="flex-1 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-700 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-600/20"
             >
               {t.confirm}
             </button>
