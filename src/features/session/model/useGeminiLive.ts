@@ -15,7 +15,7 @@ import { saveAudio } from "@/shared/lib/db";
 import { ConnectionStatus } from "@/shared/types";
 import { getSystemPrompt } from "@/shared/lib/prompts";
 
-export const useGeminiLive = () => {
+export const useGeminiLiveV3 = () => {
   const {
     setStatus,
     setError,
@@ -399,7 +399,7 @@ export const useGeminiLive = () => {
 
       // If we are NOT resuming, restore Context from previous messages manually
       if (!resumptionToken && transcripts && transcripts.length > 0) {
-        const MAX_CONTEXT_MESSAGES = 10;
+        const MAX_CONTEXT_MESSAGES = 20;
         const recentMessages = transcripts.slice(-MAX_CONTEXT_MESSAGES);
         const contextString = recentMessages
           .map(
@@ -626,7 +626,8 @@ export const useGeminiLive = () => {
                   }
                 } else {
                   // If silence and we have an empty user bubble, start a timer to hide it
-                  const currentStreaming = useLiveStore.getState().streamingContent;
+                  const currentStreaming =
+                    useLiveStore.getState().streamingContent;
                   if (
                     currentStreaming?.role === "user" &&
                     currentStreaming?.text === "" &&
@@ -738,7 +739,8 @@ export const useGeminiLive = () => {
                 // --- 2. MODEL TURN GUARD ---
                 // If we are in aborted state, skip all model output until next user action.
                 // We reset the guard if we see a model turn and we have fresh user input waiting.
-                const isModelOutput = !!content.modelTurn || !!content.outputTranscription;
+                const isModelOutput =
+                  !!content.modelTurn || !!content.outputTranscription;
                 if (isTurnAbortedRef.current && isModelOutput) {
                   return;
                 }
@@ -973,7 +975,10 @@ export const useGeminiLive = () => {
                   }
 
                   // --- SAVE MODEL TURN ---
-                  if (transcriptionBufferRef.current.output.trim() && !isTurnAbortedRef.current) {
+                  if (
+                    transcriptionBufferRef.current.output.trim() &&
+                    !isTurnAbortedRef.current
+                  ) {
                     const msgId = crypto.randomUUID();
                     const hasAudio =
                       isRecordingEnabled &&
@@ -1360,7 +1365,7 @@ export const useGeminiLive = () => {
   // API to interrupt currently streaming AI response manually
   const interrupt = useCallback(() => {
     lastManualInterruptAtRef.current = Date.now();
-    
+
     // 1. Немедленно останавливаем все играющие аудио-ноды и глушим звук
     activeSourceNodesRef.current.forEach((node) => {
       try {

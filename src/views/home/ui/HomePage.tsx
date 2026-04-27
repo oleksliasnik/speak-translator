@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { useLiveStore } from "@/app/store/useLiveStore";
-import { useGeminiLive } from "@/features/session/model/useGeminiLive";
+import { useGeminiLiveV3 } from "@/features/session/model/useGeminiLive";
+import { useGeminiNativeAudio } from "@/features/session/model/useGeminiNativeAudio";
 import { ConnectionStatus } from "@/shared/types";
 import Sidebar from "@/widgets/sidebar/ui/Sidebar";
 import TopBar from "@/widgets/top-bar/ui/TopBar";
@@ -25,7 +26,13 @@ export default function HomePage() {
     startNewSession,
     isMicOn,
     setError,
+    geminiModel,
   } = useLiveStore();
+
+  const liveV3 = useGeminiLiveV3();
+  const nativeAudio = useGeminiNativeAudio();
+
+  const gemini = geminiModel === "live" ? liveV3 : nativeAudio;
 
   const {
     connect,
@@ -33,7 +40,7 @@ export default function HomePage() {
     sendTextMessage,
     setAudioMode: setGeminiAudioMode,
     interrupt,
-  } = useGeminiLive();
+  } = gemini;
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTextInputVisible, setIsTextInputVisible] = useState(false);
 
@@ -47,6 +54,13 @@ export default function HomePage() {
       setGeminiAudioMode(audioMode);
     }
   }, [audioMode, setGeminiAudioMode]);
+
+  // Disconnect on model change to prevent orphan sessions
+  React.useEffect(() => {
+    liveV3.disconnect();
+    nativeAudio.disconnect();
+    stopCapture();
+  }, [geminiModel]);
 
   // viewMode state: if 'text', show transcript; if 'visualizer', show visualizer.
   const [viewMode, setViewMode] = useState<"visualizer" | "text">("text");
@@ -73,7 +87,7 @@ export default function HomePage() {
       } catch (err: any) {
         console.error("Error starting connection:", err);
         setError(err.message || "Не вдалося отримати доступ до мікрофона.");
-        
+
         // Auto-clear error after 5 seconds
         setTimeout(() => {
           setError(null);
@@ -157,7 +171,7 @@ export default function HomePage() {
         >
           {viewMode === "visualizer" ? (
             <div className="h-full w-full flex items-center justify-center">
-              <div 
+              <div
                 className="relative w-full aspect-square max-w-[400px] max-h-full rounded-full flex items-center justify-center"
                 onDoubleClick={handleInterrupt}
               >

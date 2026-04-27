@@ -15,7 +15,7 @@ import { saveAudio } from "@/shared/lib/db";
 import { ConnectionStatus } from "@/shared/types";
 import { getSystemPrompt } from "@/shared/lib/prompts";
 
-export const useGeminiLive = () => {
+export const useGeminiNativeAudio = () => {
   const {
     setStatus,
     setError,
