@@ -49,6 +49,8 @@ const ControlTray: React.FC<ControlTrayProps> = ({
       case ConnectionStatus.CONNECTED:
         return t.statusListening;
       case ConnectionStatus.ERROR:
+        // If it's just a session timeout, don't show "Error" status text
+        if (errorMessage === t.errorSessionExpired) return t.statusReady;
         return t.statusError;
       default:
         return t.statusReady;
@@ -62,6 +64,8 @@ const ControlTray: React.FC<ControlTrayProps> = ({
       case ConnectionStatus.CONNECTED:
         return "text-emerald-400";
       case ConnectionStatus.ERROR:
+        // Use neutral color for session timeout
+        if (errorMessage === t.errorSessionExpired) return "text-slate-400";
         return "text-red-400";
       default:
         return "text-slate-400";
@@ -77,7 +81,13 @@ const ControlTray: React.FC<ControlTrayProps> = ({
           className={`flex items-center gap-2 text-xs font-medium ${getStatusColor()} transition-colors duration-300`}
         >
           <div
-            className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse" : isError ? "bg-red-500" : "bg-slate-500"}`}
+            className={`w-2 h-2 rounded-full ${
+              isConnected
+                ? "bg-emerald-400 animate-pulse"
+                : isError && errorMessage !== t.errorSessionExpired
+                  ? "bg-red-500"
+                  : "bg-slate-500"
+            }`}
           />
           {getStatusText()}
         </div>
@@ -85,9 +95,21 @@ const ControlTray: React.FC<ControlTrayProps> = ({
 
       {/* Error Display */}
       {errorMessage && (
-        <div className="w-full p-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-          <p className="text-red-200 text-xs">{errorMessage}</p>
+        <div className="w-full p-3 bg-slate-900/90 backdrop-blur-md border border-blue-500/20 rounded-xl flex items-center justify-between gap-3 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-4 h-4 text-blue-400" />
+            </div>
+            <p className="text-slate-200 text-xs font-medium leading-relaxed">
+              {errorMessage}
+            </p>
+          </div>
+          <button
+            onClick={onToggleConnection}
+            className="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold rounded-lg transition-all active:scale-95 shadow-lg shadow-blue-600/20"
+          >
+            {t.reconnect}
+          </button>
         </div>
       )}
 

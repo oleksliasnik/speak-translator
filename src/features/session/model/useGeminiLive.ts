@@ -14,6 +14,7 @@ import {
 import { saveAudio } from "@/shared/lib/db";
 import { ConnectionStatus } from "@/shared/types";
 import { getSystemPrompt } from "@/shared/lib/prompts";
+import { translations } from "@/shared/lib/translations";
 
 export const useGeminiLiveV3 = () => {
   const {
@@ -146,6 +147,7 @@ export const useGeminiLiveV3 = () => {
 
   // Timeout for auto-hiding empty placeholder if model ignores noise
   const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const vadConfidenceRef = useRef<number>(0);
 
   // Flag to track if the current turn has been aborted to ignore trailing packets
   const isTurnAbortedRef = useRef(false);
@@ -510,6 +512,7 @@ export const useGeminiLiveV3 = () => {
         const ai = new GoogleGenAI({ apiKey });
         transcriptionBufferRef.current = { input: "", output: "" };
         audioAccumulatorRef.current = { input: [], output: [] };
+        vadConfidenceRef.current = 0;
 
         // Configure session
         const liveConfig: any = {
@@ -605,7 +608,15 @@ export const useGeminiLiveV3 = () => {
 
                 // --- CLIENT-SIDE VAD (Streaming UI Feedback) ---
                 const rms = Math.sqrt(sumSquares / l);
+                // Threshold increased to 0.012 to ignore minor background noise
                 if (rms > 0.012 && settingsRef.current.isMicOn) {
+                  vadConfidenceRef.current++;
+                } else {
+                  vadConfidenceRef.current = 0;
+                }
+
+                // Only show bubble if we have stable speech signal (approx 400ms)
+                if (vadConfidenceRef.current >= 4) {
                   // If noise/speech detected, clear silence hide timer
                   // Don't reset if we just manually interrupted (2s cooldown)
                   if (Date.now() - lastManualInterruptAtRef.current > 2000) {
@@ -618,7 +629,15 @@ export const useGeminiLiveV3 = () => {
                   }
 
                   // If user is speaking but no text yet, show placeholder to activate bubble
-                  if (!transcriptionBufferRef.current.input) {
+                  // But only if model is NOT responding to prevent flickering during interruption
+                  const currentStreaming =
+                    useLiveStore.getState().streamingContent;
+                  const isModelResponding = currentStreaming?.role === "model";
+
+                  if (
+                    !transcriptionBufferRef.current.input &&
+                    !isModelResponding
+                  ) {
                     setStreamingContent({
                       role: "user",
                       text: "",
@@ -734,6 +753,14 @@ export const useGeminiLiveV3 = () => {
                   // Flush what we have and LOCK the model output
                   flushBuffers();
                   isTurnAbortedRef.current = true;
+
+                  // Immediate feedback: show user bubble since model was interrupted by speech
+                  if (!transcriptionBufferRef.current.input) {
+                    setStreamingContent({
+                      role: "user",
+                      text: "",
+                    });
+                  }
                 }
 
                 // --- 2. MODEL TURN GUARD ---
@@ -848,10 +875,15 @@ export const useGeminiLiveV3 = () => {
                   }
                   transcriptionBufferRef.current.input +=
                     content.inputTranscription.text;
+
+                  // Immediate feedback: ensure bubble is shown when text arrives
                   setStreamingContent({
                     role: "user",
                     text: transcriptionBufferRef.current.input,
                   });
+
+                  // Reset confidence as we have real data
+                  vadConfidenceRef.current = 0;
 
                   // Start model response timeout — if no response in 15s, reconnect
                   if (modelResponseTimeoutRef.current) {
@@ -1037,8 +1069,23 @@ export const useGeminiLiveV3 = () => {
                 return;
               }
 
+              const reason = e?.reason || "";
+              const isExpired =
+                e?.code === 1008 || reason.toLowerCase().includes("expired");
+
+              if (isExpired) {
+                const { interfaceLanguage } = useLiveStore.getState();
+                const t = translations[interfaceLanguage] || translations.uk;
+                setResumptionToken(null); // CRITICAL: Clear token so we don't try to resume an expired session
+                setError(t.errorSessionExpired);
+                setStatus(ConnectionStatus.ERROR);
+                flushBuffers();
+                cleanupResources(true);
+                return;
+              }
+
               if (!sawSetupCompleteRef.current) {
-                const closeInfo = `Live closed before setupComplete (code=${e?.code}, reason="${e?.reason || ""}")`;
+                const closeInfo = `Live closed before setupComplete (code=${e?.code}, reason="${reason}")`;
                 console.warn("[LiveDebug]", closeInfo);
                 setError(closeInfo);
                 setStatus(ConnectionStatus.ERROR);
@@ -1103,6 +1150,15 @@ export const useGeminiLiveV3 = () => {
             },
             onerror: (err) => {
               console.error("Gemini Live Error:", err);
+              const errMsg = String(err).toLowerCase();
+              if (errMsg.includes("expired")) {
+                const { interfaceLanguage } = useLiveStore.getState();
+                const t = translations[interfaceLanguage] || translations.uk;
+                setResumptionToken(null); // CRITICAL: Clear token
+                setError(t.errorSessionExpired);
+                setStatus(ConnectionStatus.ERROR);
+                return;
+              }
               isSocketOpenRef.current = false;
               stopInputPump();
 
@@ -1366,7 +1422,7 @@ export const useGeminiLiveV3 = () => {
   const interrupt = useCallback(() => {
     lastManualInterruptAtRef.current = Date.now();
 
-    // 1. Немедленно останавливаем все играющие аудио-ноды и глушим звук
+    // 1. Immediately stop all playing audio nodes and mute the sound
     activeSourceNodesRef.current.forEach((node) => {
       try {
         node.stop();
@@ -1376,26 +1432,19 @@ export const useGeminiLiveV3 = () => {
     });
     activeSourceNodesRef.current.clear();
 
-    if (resourcesRef.current.outputGainNode) {
-      resourcesRef.current.outputGainNode.gain.setValueAtTime(
-        0,
-        audioContextsRef.current.output?.currentTime || 0,
-      );
-    }
-
-    // 2. Сбрасываем время следующего старта, чтобы новые чанки не выстраивались в старую очередь
+    // 2. Reset the next start time so that new chunks do not line up in the old queue
     if (audioContextsRef.current.output) {
       nextStartTimeRef.current = audioContextsRef.current.output.currentTime;
     }
 
-    // 4. Сохраняем то, что модель успела сказать до прерывания
-    // ВАЖНО: flushBuffers сбрасывает флаг в false, поэтому вызываем его ДО установки флага в true
+    // 4. Save what the model managed to say before the interruption
+    // IMPORTANT: flushBuffers resets the flag to false, so call it BEFORE setting the flag to true
     flushBuffers();
 
-    // 5. Ставим флаг блокировки входящих пакетов
+    // 5. Set the incoming packet blocking flag
     isTurnAbortedRef.current = true;
 
-    // 6. ЯВНО сообщаем серверу остановиться, забирая turn (очередь) себе
+    // 6. Explicitly tell the server to stop, taking the turn (queue) for ourselves
     if (sessionPromiseRef.current) {
       sessionPromiseRef.current.then((session) => {
         try {
@@ -1404,7 +1453,7 @@ export const useGeminiLiveV3 = () => {
             s.send({
               clientContent: {
                 turns: [{ role: "user", parts: [] }],
-                turnComplete: true, // Сигнал модели прервать генерацию
+                turnComplete: true, // Signal the model to interrupt generation
               },
             });
           } else if (typeof s.sendClientContent === "function") {

@@ -41,9 +41,9 @@ const Settings: React.FC<SettingsProps> = ({
         )}
         <div className="overflow-hidden bg-slate-950/50">
           <div className="max-h-[60vh] overflow-y-auto custom-scrollbar shadow-inner">
-            <InterfaceLanguageSettings />
             <GeminiModelSettings />
             <VoiceSettings onVoiceChange={onVoiceChange} />
+            <InterfaceLanguageSettings />
             <ApiKeySettings />
             <VolumeControls />
           </div>

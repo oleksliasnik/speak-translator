@@ -91,7 +91,6 @@ export const translations: Record<string, any> = {
     profileInterview: "Інтерв'ю",
     profileEnglish_tutor: "Репетитор англійської",
     profileGerman_tutor: "Репетитор німецької",
-    profileEstonian_tutor: "Репетитор естонської",
     profileConversation: "Розмова",
     profileFriendly: "Дружня бесіда",
     profileFormal: "Формальна бесіда",
@@ -121,6 +120,9 @@ export const translations: Record<string, any> = {
       "Ви впевнені, що хочете видалити аудіо для цього повідомлення?",
     systemNotSupported:
       "Захоплення системного звуку не підтримується на цьому пристрої",
+    errorSessionExpired:
+      "Час сесії (15 хв) вичерпано. Будь ласка, перепідключіться.",
+    reconnect: "Підключитись знову",
   },
   en: {
     menu: "Menu",
@@ -203,7 +205,6 @@ export const translations: Record<string, any> = {
     profileInterview: "Interview",
     profileEnglish_tutor: "English Tutor",
     profileGerman_tutor: "German Tutor",
-    profileEstonian_tutor: "Estonian Tutor",
     profileConversation: "Conversation",
     profileFriendly: "Friendly Chat",
     profileFormal: "Formal Chat",
@@ -232,6 +233,8 @@ export const translations: Record<string, any> = {
     confirmDeleteAudio:
       "Are you sure you want to delete the audio for this message?",
     systemNotSupported: "System audio capture is not supported on this device",
+    errorSessionExpired: "Session expired (15 min limit). Please reconnect.",
+    reconnect: "Reconnect",
   },
   pl: {
     menu: "Menu",
@@ -756,7 +759,6 @@ export const translations: Record<string, any> = {
     profileInterview: "Интервью",
     profileEnglish_tutor: "Репетитор английского",
     profileGerman_tutor: "Репетитор немецкого",
-    profileEstonian_tutor: "Репетитор эстонского",
     profileConversation: "Разговор",
     profileFriendly: "Дружеская беседа",
     profileFormal: "Формальная беседа",
@@ -786,5 +788,8 @@ export const translations: Record<string, any> = {
       "Вы уверены, что хотите удалить аудио для этого сообщения?",
     systemNotSupported:
       "Захват системного звука не поддерживается на этом устройстве",
+    errorSessionExpired:
+      "Время сессии (15 мин) истекло. Пожалуйста, переподключитесь.",
+    reconnect: "Подключиться снова",
   },
 };

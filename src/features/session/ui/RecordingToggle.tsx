@@ -14,7 +14,7 @@ const RecordingToggle: React.FC = () => {
       className={`group flex items-center justify-center w-7 h-7 sm:w-7 sm:h-7 p-0.5 rounded-full border-3 transition-all duration-300 cursor-pointer
                 ${
                   isRecordingEnabled
-                    ? "bg-red-500/0 hover:bg-red-500/50 border-red-500/70 hover:border-red-500/80 animate-pulse"
+                    ? "bg-red-500/0 border-red-500/70 hover:border-red-500 animate-pulse"
                     : "bg-slate-800/50 border-slate-500/80 hover:bg-red-500/10 hover:border-red-500/30"
                 }`}
       style={{ WebkitAppRegion: "no-drag" } as any}
