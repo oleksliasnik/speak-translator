@@ -137,7 +137,8 @@ export const useGeminiNativeAudio = () => {
 
   // --- Flush unsaved buffers (reusable helper) ---
   const flushBuffers = useCallback(() => {
-    const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
+    const { isRecordingEnabled, isUserRecordingEnabled } =
+      useLiveStore.getState();
 
     // Clear model response timeout
     if (modelResponseTimeoutRef.current) {
@@ -149,7 +150,9 @@ export const useGeminiNativeAudio = () => {
     if (transcriptionBufferRef.current.input.trim()) {
       const msgId = crypto.randomUUID();
       let hasAudio =
-        isRecordingEnabled && isUserRecordingEnabled && audioAccumulatorRef.current.input.length > 0;
+        isRecordingEnabled &&
+        isUserRecordingEnabled &&
+        audioAccumulatorRef.current.input.length > 0;
 
       if (hasAudio) {
         const combined = mergeBuffers(audioAccumulatorRef.current.input);
@@ -341,7 +344,7 @@ export const useGeminiNativeAudio = () => {
 
       // If we are NOT resuming, restore Context from previous messages manually
       if (!resumptionToken && transcripts && transcripts.length > 0) {
-        const MAX_CONTEXT_MESSAGES = 10;
+        const MAX_CONTEXT_MESSAGES = 20;
         const recentMessages = transcripts.slice(-MAX_CONTEXT_MESSAGES);
         const contextString = recentMessages
           .map(
@@ -460,6 +463,14 @@ export const useGeminiNativeAudio = () => {
             systemInstruction: systemInstruction,
             inputAudioTranscription: {},
             outputAudioTranscription: {},
+            realtimeInputConfig: {
+              automaticActivityDetection: {
+                startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
+                endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
+                prefixPaddingMs: 180,
+                silenceDurationMs: 2000,
+              },
+            },
             tools: [{ googleSearch: {} }],
           },
         };
@@ -635,19 +646,27 @@ export const useGeminiNativeAudio = () => {
                     transcriptionBufferRef.current.input.trim() &&
                     transcriptionBufferRef.current.output.length === 0
                   ) {
-                    const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
+                    const { isRecordingEnabled, isUserRecordingEnabled } =
+                      useLiveStore.getState();
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled && isUserRecordingEnabled &&
+                      isRecordingEnabled &&
+                      isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     if (hasAudio) {
                       const combined = mergeBuffers(
                         audioAccumulatorRef.current.input,
                       );
-                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
+                      const trimmed = trimSilence(
+                        combined,
+                        PCM_SAMPLE_RATE_INPUT,
+                      );
                       if (trimmed.length > 0) {
-                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
+                        const wavBlob = pcmToWav(
+                          trimmed,
+                          PCM_SAMPLE_RATE_INPUT,
+                        );
                         saveAudio(msgId, wavBlob);
                       } else {
                         hasAudio = false;
@@ -676,13 +695,15 @@ export const useGeminiNativeAudio = () => {
                 }
 
                 if (content.turnComplete) {
-                  const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
+                  const { isRecordingEnabled, isUserRecordingEnabled } =
+                    useLiveStore.getState();
 
                   // --- SAVE REMAINDER USER TURN (if any) ---
                   if (transcriptionBufferRef.current.input.trim()) {
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled && isUserRecordingEnabled &&
+                      isRecordingEnabled &&
+                      isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     // Save Audio
@@ -690,9 +711,15 @@ export const useGeminiNativeAudio = () => {
                       const combined = mergeBuffers(
                         audioAccumulatorRef.current.input,
                       );
-                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
+                      const trimmed = trimSilence(
+                        combined,
+                        PCM_SAMPLE_RATE_INPUT,
+                      );
                       if (trimmed.length > 0) {
-                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
+                        const wavBlob = pcmToWav(
+                          trimmed,
+                          PCM_SAMPLE_RATE_INPUT,
+                        );
                         saveAudio(msgId, wavBlob);
                       } else {
                         hasAudio = false;
@@ -756,7 +783,8 @@ export const useGeminiNativeAudio = () => {
                   activeSourceNodesRef.current.clear();
 
                   nextStartTimeRef.current = 0;
-                  const { isRecordingEnabled, isUserRecordingEnabled } = useLiveStore.getState();
+                  const { isRecordingEnabled, isUserRecordingEnabled } =
+                    useLiveStore.getState();
 
                   // Even if interrupted, save what we have for MODEL output
                   if (transcriptionBufferRef.current.output.trim()) {
@@ -790,16 +818,23 @@ export const useGeminiNativeAudio = () => {
                   if (transcriptionBufferRef.current.input.trim()) {
                     const msgId = crypto.randomUUID();
                     let hasAudio =
-                      isRecordingEnabled && isUserRecordingEnabled &&
+                      isRecordingEnabled &&
+                      isUserRecordingEnabled &&
                       audioAccumulatorRef.current.input.length > 0;
 
                     if (hasAudio) {
                       const combined = mergeBuffers(
                         audioAccumulatorRef.current.input,
                       );
-                      const trimmed = trimSilence(combined, PCM_SAMPLE_RATE_INPUT);
+                      const trimmed = trimSilence(
+                        combined,
+                        PCM_SAMPLE_RATE_INPUT,
+                      );
                       if (trimmed.length > 0) {
-                        const wavBlob = pcmToWav(trimmed, PCM_SAMPLE_RATE_INPUT);
+                        const wavBlob = pcmToWav(
+                          trimmed,
+                          PCM_SAMPLE_RATE_INPUT,
+                        );
                         saveAudio(msgId, wavBlob);
                       } else {
                         hasAudio = false;
