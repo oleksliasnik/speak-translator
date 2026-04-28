@@ -176,3 +176,47 @@ export function trimSilence(
   result.set(new Uint8Array(trimmedInt16.buffer, trimmedInt16.byteOffset, trimmedInt16.byteLength));
   return result;
 }
+
+let cachedWorkletUrl: string | null = null;
+export const getAudioWorkletUrl = (): string => {
+  if (cachedWorkletUrl) return cachedWorkletUrl;
+  const workletCode = `
+class RecorderWorkletProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.bufferSize = 4096;
+    this.buffer = new Float32Array(this.bufferSize);
+    this.bytesWritten = 0;
+  }
+
+  process(inputs, outputs, parameters) {
+    const input = inputs[0];
+    if (!input || !input[0]) return true;
+
+    const channelData = input[0];
+    
+    for (let i = 0; i < channelData.length; i++) {
+      this.buffer[this.bytesWritten++] = channelData[i];
+      if (this.bytesWritten >= this.bufferSize) {
+        // Send buffer to main thread
+        this.port.postMessage({
+          eventType: 'data',
+          audioData: this.buffer
+        });
+        
+        // Reset buffer
+        this.buffer = new Float32Array(this.bufferSize);
+        this.bytesWritten = 0;
+      }
+    }
+    
+    return true;
+  }
+}
+
+registerProcessor('recorder-worklet', RecorderWorkletProcessor);
+  `;
+  const blob = new globalThis.Blob([workletCode], { type: "application/javascript" });
+  cachedWorkletUrl = URL.createObjectURL(blob);
+  return cachedWorkletUrl;
+};

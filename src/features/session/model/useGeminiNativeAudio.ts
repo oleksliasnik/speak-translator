@@ -10,6 +10,7 @@ import {
   mergeBuffers,
   pcmToWav,
   trimSilence,
+  getAudioWorkletUrl,
 } from "@/shared/lib/audioUtils";
 import { saveAudio } from "@/shared/lib/db";
 import { ConnectionStatus } from "@/shared/types";
@@ -100,7 +101,7 @@ export const useGeminiNativeAudio = () => {
     inputSource: MediaStreamAudioSourceNode | null;
     inputGainNode: GainNode | null;
     outputGainNode: GainNode | null;
-    scriptProcessor: ScriptProcessorNode | null;
+    workletNode: AudioWorkletNode | null;
     inputAnalyser: AnalyserNode | null;
     outputAnalyser: AnalyserNode | null;
     analysisInterval: number | null;
@@ -108,7 +109,7 @@ export const useGeminiNativeAudio = () => {
     inputSource: null,
     inputGainNode: null,
     outputGainNode: null,
-    scriptProcessor: null,
+    workletNode: null,
     inputAnalyser: null,
     outputAnalyser: null,
     analysisInterval: null,
@@ -134,6 +135,9 @@ export const useGeminiNativeAudio = () => {
 
   // Flag to track if the disconnection was initiated by the user
   const isUserDisconnectRef = useRef(false);
+
+  // Timeout for delaying media stream destruction to support rapid reconnects
+  const mediaStreamDestroyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Flush unsaved buffers (reusable helper) ---
   const flushBuffers = useCallback(() => {
@@ -226,10 +230,10 @@ export const useGeminiNativeAudio = () => {
     activeSourceNodesRef.current.clear();
 
     // Disconnect Audio Nodes
-    if (resourcesRef.current.scriptProcessor) {
-      resourcesRef.current.scriptProcessor.disconnect();
-      resourcesRef.current.scriptProcessor.onaudioprocess = null;
-      resourcesRef.current.scriptProcessor = null;
+    if (resourcesRef.current.workletNode) {
+      resourcesRef.current.workletNode.disconnect();
+      resourcesRef.current.workletNode.port.onmessage = null;
+      resourcesRef.current.workletNode = null;
     }
 
     if (resourcesRef.current.inputSource) {
@@ -249,8 +253,15 @@ export const useGeminiNativeAudio = () => {
 
     // Stop Media Stream (ONLY if not preserving for reconnect)
     if (!preserveMediaStream && mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
+      if (mediaStreamDestroyTimeoutRef.current) {
+        clearTimeout(mediaStreamDestroyTimeoutRef.current);
+      }
+      mediaStreamDestroyTimeoutRef.current = setTimeout(() => {
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+          mediaStreamRef.current = null;
+        }
+      }, 500);
     }
 
     // Close Audio Contexts
@@ -308,6 +319,12 @@ export const useGeminiNativeAudio = () => {
 
       // Reset user disconnect flag on new attempt
       isUserDisconnectRef.current = false;
+
+      // Cancel any pending media stream destruction since we are reconnecting
+      if (mediaStreamDestroyTimeoutRef.current) {
+        clearTimeout(mediaStreamDestroyTimeoutRef.current);
+        mediaStreamDestroyTimeoutRef.current = null;
+      }
 
       // Ensure we are starting fresh or appending to current
       if (!useLiveStore.getState().currentSessionId) {
@@ -488,7 +505,16 @@ export const useGeminiNativeAudio = () => {
         const sessionPromise = ai.live.connect({
           ...liveConfig,
           callbacks: {
-            onopen: () => {
+            onopen: async () => {
+              if (sessionPromiseRef.current !== sessionPromise) {
+                console.log("Stale session opened, ignoring.");
+                return;
+              }
+              if (inputCtx.state === "closed") {
+                console.log("AudioContext is already closed, ignoring onopen.");
+                return;
+              }
+
               console.log("Gemini Live Session Opened");
               setStatus(ConnectionStatus.CONNECTED);
 
@@ -510,15 +536,20 @@ export const useGeminiNativeAudio = () => {
                 }
               }, 5000);
 
-              const source = inputCtx.createMediaStreamSource(stream);
-              resourcesRef.current.inputSource = source;
+              try {
+                const source = inputCtx.createMediaStreamSource(stream);
+                resourcesRef.current.inputSource = source;
 
               source.connect(inputGainNode);
               inputGainNode.connect(inputAnalyser);
 
-              const processor = inputCtx.createScriptProcessor(4096, 1, 1);
-              processor.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0);
+              const workletUrl = getAudioWorkletUrl();
+              await inputCtx.audioWorklet.addModule(workletUrl);
+
+              const processor = new AudioWorkletNode(inputCtx, 'recorder-worklet');
+              processor.port.onmessage = (e) => {
+                if (e.data.eventType !== 'data') return;
+                const inputData = e.data.audioData; // Float32Array
 
                 // Accumulate raw PCM (convert float32 to int16 for wav saving)
                 // We re-use logic from createBlob but just keep the int16 buffer
@@ -539,7 +570,11 @@ export const useGeminiNativeAudio = () => {
 
               inputGainNode.connect(processor);
               processor.connect(inputCtx.destination);
-              resourcesRef.current.scriptProcessor = processor;
+              resourcesRef.current.workletNode = processor;
+              } catch (e) {
+                console.warn("Failed to initialize audio pipeline in onopen:", e);
+                // The connection will likely fail or remain without audio.
+              }
             },
             onmessage: async (message: LiveServerMessage) => {
               const content = message.serverContent;
@@ -857,6 +892,11 @@ export const useGeminiNativeAudio = () => {
               }
             },
             onclose: () => {
+              if (sessionPromiseRef.current !== sessionPromise) {
+                console.log("Stale session closed, ignoring onclose.");
+                return;
+              }
+
               console.log("Gemini Live Session Closed");
 
               // If user manually disconnected, do NOT reconnect
@@ -1078,7 +1118,7 @@ export const useGeminiNativeAudio = () => {
   // Auto-reconnect on speed change to apply new prompt
   useEffect(() => {
     const { status } = useLiveStore.getState();
-    if (status === ConnectionStatus.CONNECTED) {
+    if (status === ConnectionStatus.CONNECTED && sessionPromiseRef.current !== null) {
       console.log(
         "Playback speed changed. Re-connecting to apply new system prompt...",
       );
